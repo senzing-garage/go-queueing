@@ -10,8 +10,8 @@ import (
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/roncewind/go-util/queues"
 	"github.com/roncewind/go-util/util"
+	"github.com/senzing/go-queuing/queues"
 )
 
 type Client struct {

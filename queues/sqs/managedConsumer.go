@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
-	"github.com/roncewind/go-util/queues/sqs"
 	"github.com/roncewind/go-util/util"
 	"github.com/senzing/g2-sdk-go/g2api"
 	"github.com/senzing/go-common/record"
@@ -27,7 +26,7 @@ type ManagedConsumerError struct {
 
 // define a structure that will implement the Job interface
 type SQSJob struct {
-	client    *sqs.Client
+	client    *Client
 	engine    g2api.G2engine
 	id        int
 	message   types.Message
@@ -152,7 +151,7 @@ func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	client, err := sqs.NewClient(ctx, urlString)
+	client, err := NewClient(ctx, urlString)
 	if err != nil {
 		return ManagedConsumerError{util.WrapError(err, "unable to get a new SQS client")}
 	}

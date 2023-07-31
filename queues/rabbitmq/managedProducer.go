@@ -6,8 +6,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/roncewind/go-util/queues"
 	"github.com/roncewind/go-util/util"
+	"github.com/senzing/go-queuing/queues"
 	"github.com/sourcegraph/conc/pool"
 )
 

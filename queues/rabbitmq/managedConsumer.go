@@ -7,7 +7,6 @@ import (
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/roncewind/go-util/queues/rabbitmq"
 	"github.com/roncewind/go-util/util"
 	"github.com/senzing/g2-sdk-go/g2api"
 	"github.com/senzing/go-common/record"
@@ -121,7 +120,7 @@ func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers
 		}
 	}
 
-	client, err := rabbitmq.NewClient(urlString)
+	client, err := NewClient(urlString)
 	if err != nil {
 		return ManagedConsumerError{util.WrapError(err, "unable to get a new RabbitMQ client")}
 	}

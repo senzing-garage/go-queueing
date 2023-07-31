@@ -6,13 +6,12 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/roncewind/go-util/queues"
-	"github.com/roncewind/go-util/queues/sqs"
 	"github.com/roncewind/go-util/util"
+	"github.com/senzing/go-queuing/queues"
 	"github.com/sourcegraph/conc/pool"
 )
 
-var clientPool chan *sqs.Client
+var clientPool chan *Client
 
 type ManagedProducerError struct {
 	error
@@ -21,7 +20,7 @@ type ManagedProducerError struct {
 // ----------------------------------------------------------------------------
 
 // read a record from the record channel and push it to the RabbitMQ queue
-func processRecord(ctx context.Context, record queues.Record, newClientFn func() (*sqs.Client, error)) (err error) {
+func processRecord(ctx context.Context, record queues.Record, newClientFn func() (*Client, error)) (err error) {
 	client := <-clientPool
 	err = client.Push(ctx, record)
 	if err != nil {
@@ -46,7 +45,7 @@ func processRecord(ctx context.Context, record queues.Record, newClientFn func()
 // ----------------------------------------------------------------------------
 
 // read a record from the record channel and push it to the SQS queue
-func processRecordBatch(ctx context.Context, recordchan <-chan queues.Record, newClientFn func() (*sqs.Client, error)) (err error) {
+func processRecordBatch(ctx context.Context, recordchan <-chan queues.Record, newClientFn func() (*Client, error)) (err error) {
 	client := <-clientPool
 	err = client.PushBatch(ctx, recordchan)
 	if err != nil {
@@ -84,8 +83,8 @@ func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers
 
 	ctx, cancel := context.WithCancel(ctx)
 
-	clientPool = make(chan *sqs.Client, numberOfWorkers)
-	newClientFn := func() (*sqs.Client, error) { return sqs.NewClient(ctx, urlString) }
+	clientPool = make(chan *Client, numberOfWorkers)
+	newClientFn := func() (*Client, error) { return NewClient(ctx, urlString) }
 
 	// populate an initial client pool
 	go createClients(ctx, numberOfWorkers, newClientFn)
@@ -121,7 +120,7 @@ func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers
 // ----------------------------------------------------------------------------
 
 // create a number of clients and put them into the client queue
-func createClients(ctx context.Context, numOfClients int, newClientFn func() (*sqs.Client, error)) error {
+func createClients(ctx context.Context, numOfClients int, newClientFn func() (*Client, error)) error {
 	countOfClientsCreated := 0
 	var errorStack error = nil
 	for i := 0; i < numOfClients; i++ {
