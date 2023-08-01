@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-
-	"github.com/senzing/go-queuing/examplepackage"
 )
 
 // ----------------------------------------------------------------------------
@@ -47,9 +45,4 @@ func main() {
 
 	// Using a package
 
-	examplePackage := &examplepackage.ExamplePackageImpl{
-		Something: " Main says 'Hi!'",
-	}
-
-	examplePackage.SaySomething(ctx)
 }
