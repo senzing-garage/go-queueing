@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/roncewind/go-util/util"
-	"github.com/senzing/go-queuing/queues"
+	"github.com/senzing/go-queueing/queues"
 	"github.com/sourcegraph/conc/pool"
 )
 

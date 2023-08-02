@@ -83,7 +83,7 @@ The variables are used throughout the installation procedure.
 
 ```console
 export GIT_ACCOUNT=senzing
-export GIT_REPOSITORY=go-queuing
+export GIT_REPOSITORY=go-queueing
 ```
 
 Synthesize environment variables.

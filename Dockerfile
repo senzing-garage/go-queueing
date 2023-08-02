@@ -11,7 +11,7 @@ ARG IMAGE_FINAL=senzing/senzingapi-runtime:3.4.0
 
 FROM ${IMAGE_GO_BUILDER} as go_builder
 ENV REFRESHED_AT=2023-02-22
-LABEL Name="senzing/go-queuing-builder" \
+LABEL Name="senzing/go-queueing-builder" \
       Maintainer="support@senzing.com" \
       Version="0.0.5"
 
@@ -51,13 +51,13 @@ RUN mkdir -p /output \
 
 FROM ${IMAGE_FINAL} as final
 ENV REFRESHED_AT=2023-02-22
-LABEL Name="senzing/go-queuing" \
+LABEL Name="senzing/go-queueing" \
       Maintainer="support@senzing.com" \
       Version="0.0.5"
 
 # Copy files from prior step.
 
-COPY --from=go_builder "/output/linux/go-queuing" "/app/go-queuing"
+COPY --from=go_builder "/output/linux/go-queueing" "/app/go-queueing"
 
 # Runtime environment variables.
 
@@ -66,4 +66,4 @@ ENV LD_LIBRARY_PATH=/opt/senzing/g2/lib/
 # Runtime execution.
 
 WORKDIR /app
-ENTRYPOINT ["/app/go-queuing"]
+ENTRYPOINT ["/app/go-queueing"]

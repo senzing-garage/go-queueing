@@ -1,4 +1,4 @@
-# Makefile for go-queuing.
+# Makefile for go-queueing.
 
 # "Simple expanded" variables (':=')
 

@@ -17,7 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/roncewind/go-util/util"
-	"github.com/senzing/go-queuing/queues"
+	"github.com/senzing/go-queueing/queues"
 )
 
 type Client struct {
