@@ -11,7 +11,7 @@ import (
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/roncewind/go-util/util"
-	"github.com/senzing/go-queuing/queues"
+	"github.com/senzing/go-queueing/queues"
 )
 
 type Client struct {

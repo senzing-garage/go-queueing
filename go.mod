@@ -1,4 +1,4 @@
-module github.com/senzing/go-queuing
+module github.com/senzing/go-queueing
 
 go 1.20
 
