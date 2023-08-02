@@ -9,9 +9,8 @@ require (
 	github.com/rabbitmq/amqp091-go v1.8.1
 	github.com/roncewind/go-util v0.0.5
 	github.com/senzing/g2-sdk-go v0.6.7
-	github.com/senzing/go-common v0.2.7
+	github.com/senzing/go-common v0.2.8
 	github.com/sourcegraph/conc v0.3.0
-	github.com/stretchr/testify v1.8.4
 )
 
 require (
@@ -25,9 +24,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.15.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.21.0 // indirect
 	github.com/aws/smithy-go v1.14.0 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/senzing/go-logging v1.3.1 // indirect
 	github.com/senzing/go-messaging v1.3.1 // indirect
 	github.com/senzing/go-observing v0.2.6 // indirect
@@ -40,5 +37,4 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230530153820-e85fd2cbaebc // indirect
 	google.golang.org/grpc v1.56.0 // indirect
 	google.golang.org/protobuf v1.30.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
