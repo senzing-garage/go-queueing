@@ -59,8 +59,6 @@ func NewClient(urlString string) (*Client, error) {
 	if err != nil {
 		return nil, RabbitError{util.WrapError(err, "unable to parse RabbitMQ URL string")}
 	}
-	// seed the random number generator
-	rand.Seed(time.Now().UnixNano())
 
 	queryMap, _ := url.ParseQuery(u.RawQuery)
 	if len(queryMap["exchange"]) < 1 || len(queryMap["queue-name"]) < 1 {

@@ -36,7 +36,7 @@ type Client struct {
 	reconnectDelay time.Duration
 	resendDelay    time.Duration
 
-	region       string //: configure region??
+	// region       string //: configure region??
 	sqsClient    *sqs.Client
 	sqsDLQClient *sqs.Client
 	sqsURL       *sqs.GetQueueUrlOutput
@@ -46,10 +46,7 @@ type SQSError struct {
 	error
 }
 
-var (
-	errAlreadyClosed = SQSError{util.WrapError(nil, "already closed: not connected to the server")}
-	errShutdown      = SQSError{util.WrapError(nil, "client is shutting down")}
-)
+var errShutdown = SQSError{util.WrapError(nil, "client is shutting down")}
 
 // ----------------------------------------------------------------------------
 
@@ -164,7 +161,7 @@ type redrivePolicy struct {
 func (client *Client) sendDeadRecord(ctx context.Context, record types.Message) (err error) {
 
 	if client.sqsDLQClient == nil {
-		return errors.New("No dead letter queue found")
+		return errors.New("no dead letter queue found")
 	}
 
 	// Send a message with attributes to the given queue
@@ -219,8 +216,7 @@ func (client *Client) sendRecord(ctx context.Context, record queues.Record) (err
 
 // send a message to a queue.
 func (client *Client) sendRecordBatch(ctx context.Context, records []queues.Record) (err error) {
-	var messages []types.SendMessageBatchRequestEntry
-	messages = make([]types.SendMessageBatchRequestEntry, len(records))
+	var messages []types.SendMessageBatchRequestEntry = make([]types.SendMessageBatchRequestEntry, len(records))
 	r := rand.New(rand.NewSource(time.Now().Unix()))
 	id := r.Intn(10000)
 	i := 0
