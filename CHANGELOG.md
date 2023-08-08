@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 -
 
+## [0.1.2] - 2023-08-08
+
+### Changed in 0.1.2
+
+- Refactor to `template-go`
+- Update dependencies
+  - github.com/aws/aws-sdk-go-v2 v1.20.1
+  - github.com/aws/aws-sdk-go-v2/config v1.18.33
+  - github.com/aws/aws-sdk-go-v2/service/sqs v1.24.2
+
 ## [0.1.1] - 2023-02-27
 
 ### Changed in 0.1.1
