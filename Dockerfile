@@ -2,15 +2,15 @@
 # Stages
 # -----------------------------------------------------------------------------
 
-ARG IMAGE_GO_BUILDER=golang:1.20.0
-ARG IMAGE_FINAL=senzing/senzingapi-runtime:3.4.0
+ARG IMAGE_GO_BUILDER=golang:1.20.4
+ARG IMAGE_FINAL=senzing/senzingapi-runtime:3.6.0
 
 # -----------------------------------------------------------------------------
 # Stage: go_builder
 # -----------------------------------------------------------------------------
 
 FROM ${IMAGE_GO_BUILDER} as go_builder
-ENV REFRESHED_AT=2023-02-22
+ENV REFRESHED_AT=2023-08-01
 LABEL Name="senzing/go-queueing-builder" \
       Maintainer="support@senzing.com" \
       Version="0.0.5"
@@ -32,30 +32,22 @@ COPY . ${GOPATH}/src/${GO_PACKAGE_NAME}
 WORKDIR ${GOPATH}/src/${GO_PACKAGE_NAME}
 RUN make build
 
-# --- Test go program ---------------------------------------------------------
-
-# Run unit tests.
-
-# RUN go get github.com/jstemmer/go-junit-report \
-#  && mkdir -p /output/go-junit-report \
-#  && go test -v ${GO_PACKAGE_NAME}/... | go-junit-report > /output/go-junit-report/test-report.xml
-
 # Copy binaries to /output.
 
 RUN mkdir -p /output \
-      && cp -R ${GOPATH}/src/${GO_PACKAGE_NAME}/target/*  /output/
+ && cp -R ${GOPATH}/src/${GO_PACKAGE_NAME}/target/*  /output/
 
 # -----------------------------------------------------------------------------
 # Stage: final
 # -----------------------------------------------------------------------------
 
 FROM ${IMAGE_FINAL} as final
-ENV REFRESHED_AT=2023-02-22
+ENV REFRESHED_AT=2023-08-01
 LABEL Name="senzing/go-queueing" \
       Maintainer="support@senzing.com" \
       Version="0.0.5"
 
-# Copy files from prior step.
+# Copy files from prior stage.
 
 COPY --from=go_builder "/output/linux/go-queueing" "/app/go-queueing"
 

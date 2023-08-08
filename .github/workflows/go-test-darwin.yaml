@@ -1,17 +1,17 @@
 # Based on
 # - https://github.com/marketplace/actions/setup-go-environment
 
-name: go-test-linux.yaml
+name: go-test-darwin.yaml
 
 on: [push]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     strategy:
       matrix:
         go: ["1.20"]
-    name: Go ${{ matrix.go }} - linux
+    name: Go ${{ matrix.go }} - darwin
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
