@@ -36,7 +36,7 @@ RUN make linux/amd64
 # Copy binaries to /output.
 
 RUN mkdir -p /output \
- && cp -R ${GOPATH}/src/${GO_PACKAGE_NAME}/target/*  /output/
+      && cp -R ${GOPATH}/src/${GO_PACKAGE_NAME}/target/*  /output/
 
 # -----------------------------------------------------------------------------
 # Stage: fpm_builder

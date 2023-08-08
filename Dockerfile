@@ -49,7 +49,7 @@ LABEL Name="senzing/go-queueing" \
 
 # Copy files from prior stage.
 
-COPY --from=go_builder "/output/linux/go-queueing" "/app/go-queueing"
+COPY --from=go_builder "/output/linux-amd64/go-queueing" "/app/go-queueing"
 
 # Runtime environment variables.
 
