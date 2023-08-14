@@ -9,7 +9,7 @@ require (
 	github.com/rabbitmq/amqp091-go v1.8.1
 	github.com/roncewind/go-util v0.0.5
 	github.com/senzing/g2-sdk-go v0.6.8
-	github.com/senzing/go-common v0.2.11
+	github.com/senzing/go-common v0.2.13
 	github.com/sourcegraph/conc v0.3.0
 )
 
