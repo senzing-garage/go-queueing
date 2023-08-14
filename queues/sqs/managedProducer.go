@@ -34,8 +34,7 @@ func processRecord(ctx context.Context, record queues.Record, newClientFn func()
 			clientPool <- newClient
 		}
 		// make sure to close the old client
-		client.Close()
-		return
+		return client.Close()
 	}
 	// return the client to the pool when done
 	clientPool <- client
@@ -59,8 +58,7 @@ func processRecordBatch(ctx context.Context, recordchan <-chan queues.Record, ne
 			clientPool <- newClient
 		}
 		// make sure to close the old client
-		client.Close()
-		return
+		return client.Close()
 	}
 	// return the client to the pool when done
 	clientPool <- client
@@ -111,7 +109,8 @@ func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers
 	for len(clientPool) > 0 {
 		client, ok := <-clientPool
 		if ok && client != nil {
-			client.Close()
+			//swallow the error, we're shutting down anyway
+			_ = client.Close()
 		}
 	}
 
