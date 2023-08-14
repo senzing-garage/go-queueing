@@ -40,19 +40,14 @@ type SQSJob struct {
 // Job interface implementation:
 // Execute() is run once for each Job
 func (j *SQSJob) Execute(ctx context.Context, visibilitySeconds int32) error {
-	fmt.Println("DEBUG: start job execute. msg id:", *j.message.MessageId)
 	// increment the number of times this job struct was used and return to the pool
 	defer func() {
 		j.usedCount++
-		fmt.Println("DEBUG: end job execute. msg id:", *j.message.MessageId, "count:", j.usedCount)
 		jobPool <- *j
 	}()
-	// fmt.Printf("Received a message- msgId: %s, msgCnt: %d, ConsumerTag: %s\n", id, *j.message.MessageCount, *j.message.ConsumerTag)
 	record, newRecordErr := record.NewRecord(string(*j.message.Body))
 	if newRecordErr == nil {
-		fmt.Println("DEBUG: msg id:", *j.message.MessageId, "record id:", record.Id)
 		loadID := "Load"
-		//
 		visibilityContext, visibilityCancel := context.WithCancel(ctx)
 		go func() {
 			ticker := time.NewTicker(time.Duration(visibilitySeconds-1) * time.Second)
@@ -61,18 +56,15 @@ func (j *SQSJob) Execute(ctx context.Context, visibilitySeconds int32) error {
 				case <-ctx.Done():
 					//swallow the error, we're done
 					_ = j.client.SetMessageVisibility(visibilityContext, j.message, 0)
-					fmt.Println("DEBUG: job context cancelled")
 					return
 				case <-visibilityContext.Done():
-					fmt.Println("DEBUG: visibility context cancelled")
 					return
 				case <-ticker.C:
 					setVisibilityError := j.client.SetMessageVisibility(visibilityContext, j.message, visibilitySeconds)
 					if setVisibilityError != nil {
-						fmt.Println("ERROR: setting message visibility", setVisibilityError)
+						//when there's an error setting visibility, let the message requeue
 						return
 					}
-					fmt.Println("DEBUG: record visibility extended", time.Since(j.startTime))
 				}
 			}
 		}()
@@ -81,19 +73,14 @@ func (j *SQSJob) Execute(ctx context.Context, visibilitySeconds int32) error {
 			_, withInfoErr := j.engine.AddRecordWithInfo(ctx, record.DataSource, record.Id, record.Json, loadID, flags)
 			visibilityCancel()
 			if withInfoErr != nil {
-				fmt.Printf("Record in error: %s:%s:%s:%s\n", *j.message.MessageId, loadID, record.DataSource, record.Id)
-				return withInfoErr
+				return fmt.Errorf("add record error, record id: %s, message id: %s, %w", *j.message.MessageId, record.Id, withInfoErr)
 			}
 			//TODO:  what do we do with the "withInfo" data here?
-			// fmt.Printf("Record added: %s:%s:%s:%s\n", *j.message.MessageId, loadID, record.DataSource, record.Id)
-			// fmt.Printf("WithInfo: %s\n", withInfo)
 		} else {
 			addRecordErr := j.engine.AddRecord(ctx, record.DataSource, record.Id, record.Json, loadID)
 			visibilityCancel()
-			fmt.Println("Record added:", record.Id, "MessageId:", *j.message.MessageId)
 			if addRecordErr != nil {
-				fmt.Printf("ERROR: Add Record error: %s:%s:%s:%s\n", *j.message.MessageId, loadID, record.DataSource, record.Id)
-				return addRecordErr
+				return fmt.Errorf("add record error, record id: %s, message id: %s, %w", *j.message.MessageId, record.Id, addRecordErr)
 			}
 		}
 
@@ -101,17 +88,14 @@ func (j *SQSJob) Execute(ctx context.Context, visibilitySeconds int32) error {
 		//as long as there was no error delete the message from the queue
 		err := j.client.RemoveMessage(ctx, j.message)
 		if err != nil {
-			fmt.Println("ERROR: Record not removed from queue. msg id:", *j.message.MessageId, "record:", record, "error:", err)
+			return fmt.Errorf("record not removed from queue, record id: %s, message id: %s, %w", *j.message.MessageId, record.Id, err)
 		}
-		fmt.Println("DEBUG: Record removed from queue. msg id:", *j.message.MessageId)
-		fmt.Println("DEBUG:", *j.message.MessageId, "processing time", time.Since(j.startTime))
 	} else {
-		// logger.LogMessageFromError(MessageIdFormat, 2001, "create new szRecord", newRecordErr)
-		fmt.Println(time.Now(), "ERROR: Invalid delivery from SQS. msg id:", *j.message.MessageId)
+		// fmt.Println(time.Now(), "ERROR: Invalid delivery from SQS. msg id:", *j.message.MessageId)
 		// when we get an invalid delivery, send to the dead letter queue
 		err := j.client.PushDeadRecord(ctx, j.message)
 		if err != nil {
-			fmt.Println("ERROR: Unable to push message to the dead letter queue. msg id:", *j.message.MessageId, "record:", record, "error:", err)
+			return fmt.Errorf("unable to push message to the dead letter queue, record id: %s, message id: %s, %w", *j.message.MessageId, record.Id, err)
 		}
 	}
 	return nil
@@ -121,12 +105,12 @@ func (j *SQSJob) Execute(ctx context.Context, visibilitySeconds int32) error {
 
 // Whenever Execute() returns an error or panics, this is called
 func (j *SQSJob) OnError(err error) {
-	fmt.Println("ERROR: Worker error:", err)
-	fmt.Println("ERROR: Failed to add record. msg id:", *j.message.MessageId)
-	err = j.client.PushDeadRecord(context.Background(), j.message)
-	if err != nil {
-		fmt.Println("ERROR: Pushing message to the dead letter queue. msg id:", *j.message.MessageId, "error:", err)
-	}
+	// fmt.Println("ERROR: Worker error:", err)
+	// fmt.Println("ERROR: Failed to add record. msg id:", *j.message.MessageId)
+	_ = j.client.PushDeadRecord(context.Background(), j.message)
+	// if err != nil {
+	// 	fmt.Println("ERROR: Pushing message to the dead letter queue. msg id:", *j.message.MessageId, "error:", err)
+	// }
 }
 
 // ----------------------------------------------------------------------------

@@ -7,17 +7,12 @@ import (
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/roncewind/go-util/util"
 	"github.com/senzing/g2-sdk-go/g2api"
 	"github.com/senzing/go-common/record"
 	"github.com/sourcegraph/conc/pool"
 )
 
 var jobPool chan *RabbitConsumerJob
-
-type ManagedConsumerError struct {
-	error
-}
 
 // ----------------------------------------------------------------------------
 // Job implementation
@@ -50,9 +45,7 @@ func (j *RabbitConsumerJob) Execute(ctx context.Context) error {
 			var flags int64 = 0
 			_, withInfoErr := (*j.engine).AddRecordWithInfo(ctx, record.DataSource, record.Id, record.Json, loadID, flags)
 			if withInfoErr != nil {
-				// fmt.Println(time.Now(), "Error adding record:", j.delivery.MessageId, "error:", withInfoErr)
-				fmt.Printf("Record in error: %s:%s:%s:%s\n", j.delivery.MessageId, loadID, record.DataSource, record.Id)
-				return withInfoErr
+				return fmt.Errorf("add record error, record id: %s, message id: %s, %v", j.delivery.MessageId, record.Id, withInfoErr)
 			}
 			//TODO:  what do we do with the "withInfo" data here?
 			// fmt.Printf("Record added: %s:%s:%s:%s\n", j.delivery.MessageId, loadID, record.DataSource, record.Id)
@@ -60,19 +53,16 @@ func (j *RabbitConsumerJob) Execute(ctx context.Context) error {
 		} else {
 			addRecordErr := (*j.engine).AddRecord(ctx, record.DataSource, record.Id, record.Json, loadID)
 			if addRecordErr != nil {
-				// fmt.Println(time.Now(), "Error adding record:", j.delivery.MessageId, "error:", addRecordErr)
-				fmt.Printf("Record in error: %s:%s:%s:%s\n", j.delivery.MessageId, loadID, record.DataSource, record.Id)
-				return addRecordErr
+				return fmt.Errorf("add record error, record id: %s, message id: %s, %v", record.Id, j.delivery.MessageId, addRecordErr)
 			}
 		}
 
 		// when we successfully process a delivery, acknowledge it.
 		return j.delivery.Ack(false)
 	} else {
-		// logger.LogMessageFromError(MessageIdFormat, 2001, "create new szRecord", newRecordErr)
-		fmt.Println(time.Now(), "Invalid delivery from RabbitMQ:", j.delivery.MessageId)
 		// when we get an invalid delivery, negatively acknowledge and send to the dead letter queue
-		return j.delivery.Nack(false, false)
+		err := j.delivery.Nack(false, false)
+		return fmt.Errorf("invalid deliver from RabbitMQ, message id: %s, %v", j.delivery.MessageId, err)
 	}
 }
 
@@ -80,8 +70,6 @@ func (j *RabbitConsumerJob) Execute(ctx context.Context) error {
 
 // Whenever Execute() returns an error or panics, this is called
 func (j *RabbitConsumerJob) OnError(err error) {
-	fmt.Println("Worker error:", err)
-	fmt.Println("Failed to move record:", j.id)
 	if j.delivery.Redelivered {
 		//swallow any error, it'll timeout and be redelivered
 		_ = j.delivery.Nack(false, false)
@@ -105,7 +93,7 @@ func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers
 	if numberOfWorkers <= 0 {
 		numberOfWorkers = runtime.GOMAXPROCS(0)
 	}
-	fmt.Println(time.Now(), "Number of consumer workers:", numberOfWorkers)
+	// fmt.Println(time.Now(), "Number of consumer workers:", numberOfWorkers)
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -123,14 +111,13 @@ func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers
 
 	client, err := NewClient(urlString)
 	if err != nil {
-		return ManagedConsumerError{util.WrapError(err, "unable to get a new RabbitMQ client")}
+		return fmt.Errorf("unable to get a new RabbitMQ client %w", err)
 	}
 	defer client.Close()
 
 	deliveries, err := client.Consume(numberOfWorkers)
 	if err != nil {
-		fmt.Println(time.Now(), "Error getting delivery channel:", err)
-		return ManagedConsumerError{util.WrapError(err, "unable to get a new RabbitMQ delivery channel")}
+		return fmt.Errorf("unable to get a new RabbitMQ delivery channel %w", err)
 	}
 
 	p := pool.New().WithMaxGoroutines(numberOfWorkers)
