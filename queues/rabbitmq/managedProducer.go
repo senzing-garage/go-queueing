@@ -22,11 +22,11 @@ type ManagedProducerError struct {
 // ----------------------------------------------------------------------------
 
 // define a structure that will implement the Job interface
-type RabbitProducerJob struct {
-	id          int
-	newClientFn func() (*Client, error)
-	record      queues.Record
-}
+// type RabbitProducerJob struct {
+// 	id          int
+// 	newClientFn func() (*Client, error)
+// 	record      queues.Record
+// }
 
 // ----------------------------------------------------------------------------
 
