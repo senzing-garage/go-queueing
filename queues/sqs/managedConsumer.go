@@ -59,7 +59,8 @@ func (j *SQSJob) Execute(ctx context.Context, visibilitySeconds int32) error {
 			for {
 				select {
 				case <-ctx.Done():
-					j.client.SetMessageVisibility(visibilityContext, j.message, 0)
+					//swallow the error, we're done
+					_ = j.client.SetMessageVisibility(visibilityContext, j.message, 0)
 					fmt.Println("DEBUG: job context cancelled")
 					return
 				case <-visibilityContext.Done():
