@@ -6,5 +6,5 @@ package queues
 
 type Record interface {
 	GetMessage() string
-	GetMessageId() string
+	GetMessageID() string
 }

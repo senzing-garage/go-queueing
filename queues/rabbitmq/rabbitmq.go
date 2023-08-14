@@ -319,7 +319,7 @@ func (client *Client) Push(record queues.Record) error {
 	for {
 		err := client.UnsafePush(record)
 		if err != nil {
-			client.logger.Println("Push failed. Retrying in", client.resendDelay, ". MessageId:", record.GetMessageId()) //TODO:  debug or trace logging, add messageId
+			client.logger.Println("Push failed. Retrying in", client.resendDelay, ". MessageId:", record.GetMessageID()) //TODO:  debug or trace logging, add messageId
 			select {
 			case <-client.done:
 				return errShutdown //TODO:  error message to include messageId?
@@ -338,7 +338,7 @@ func (client *Client) Push(record queues.Record) error {
 		case <-time.After(client.resendDelay):
 			client.resendDelay = client.progressiveDelay(client.resendDelay)
 		}
-		client.logger.Println("Push didn't confirm. Retrying in", client.resendDelay, ". MessageId:", record.GetMessageId()) //TODO:  debug or trace logging, add messageId
+		client.logger.Println("Push didn't confirm. Retrying in", client.resendDelay, ". MessageId:", record.GetMessageID()) //TODO:  debug or trace logging, add messageId
 	}
 }
 
@@ -368,7 +368,7 @@ func (client *Client) UnsafePush(record queues.Record) error {
 			Body:         []byte(record.GetMessage()),
 			ContentType:  "text/plain",
 			DeliveryMode: amqp.Persistent,
-			MessageId:    record.GetMessageId(),
+			MessageId:    record.GetMessageID(),
 		},
 	)
 }

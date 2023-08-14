@@ -82,7 +82,7 @@ func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers
 			err := processRecord(ctx, record, newClientFn)
 			if err != nil {
 				fmt.Println("Worker error:", err)
-				fmt.Println("Failed to move record:", record.GetMessageId())
+				fmt.Println("Failed to move record:", record.GetMessageID())
 			}
 		})
 	}

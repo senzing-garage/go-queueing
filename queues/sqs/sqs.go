@@ -195,7 +195,7 @@ func (client *Client) sendRecord(ctx context.Context, record queues.Record) (err
 		MessageAttributes: map[string]types.MessageAttributeValue{
 			"MessageID": {
 				DataType:    aws.String("String"),
-				StringValue: aws.String(record.GetMessageId()),
+				StringValue: aws.String(record.GetMessageID()),
 			},
 		},
 		MessageBody: aws.String(record.GetMessage()),
@@ -234,7 +234,7 @@ func (client *Client) sendRecordBatch(ctx context.Context, records []queues.Reco
 				MessageAttributes: map[string]types.MessageAttributeValue{
 					"MessageID": {
 						DataType:    aws.String("String"),
-						StringValue: aws.String(record.GetMessageId()),
+						StringValue: aws.String(record.GetMessageID()),
 					},
 				},
 				MessageBody: aws.String(record.GetMessage()), //?  aws.String(string(utils.Base64Encode([]byte(body)))),
@@ -305,7 +305,7 @@ func (client *Client) Push(ctx context.Context, record queues.Record) error {
 	for {
 		err := client.sendRecord(ctx, record)
 		if err != nil {
-			client.logger.Println("Push failed. Retrying in", client.resendDelay, ". MessageId:", record.GetMessageId()) //:  debug or trace logging, add messageId
+			client.logger.Println("Push failed. Retrying in", client.resendDelay, ". MessageId:", record.GetMessageID()) //:  debug or trace logging, add messageId
 			select {
 			case <-ctx.Done():
 				return errShutdown
@@ -337,7 +337,7 @@ func (client *Client) PushBatch(ctx context.Context, recordchan <-chan queues.Re
 	records := make([]queues.Record, 10)
 	for record := range util.OrDone(ctx, recordchan) {
 		records[i] = record
-		fmt.Println("batch push record:!", record.GetMessageId())
+		fmt.Println("batch push record:!", record.GetMessageID())
 		i++
 		if i >= 10 {
 			err := client.sendRecordBatch(ctx, records)
