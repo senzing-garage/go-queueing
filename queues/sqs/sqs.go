@@ -2,11 +2,12 @@ package sqs
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
-	"math/rand"
+	"math/big"
 	"net/url"
 	"os"
 	"strings"
@@ -217,9 +218,14 @@ func (client *Client) sendRecord(ctx context.Context, record queues.Record) (err
 // send a message to a queue.
 func (client *Client) sendRecordBatch(ctx context.Context, records []queues.Record) (err error) {
 	var messages []types.SendMessageBatchRequestEntry = make([]types.SendMessageBatchRequestEntry, len(records))
-	r := rand.New(rand.NewSource(time.Now().Unix()))
-	id := r.Intn(10000)
-	i := 0
+	// r := rand.New(rand.NewSource(time.Now().Unix()))
+	// id := r.Intn(10000)
+	r, _ := rand.Int(rand.Reader, big.NewInt(10000))
+	// if err != nil {
+	// 	fmt.Println("error:", err)
+	// }
+	id := r.Int64()
+	i := int64(0)
 	for _, record := range records {
 		if record != nil {
 			messages[i] = types.SendMessageBatchRequestEntry{
@@ -267,8 +273,11 @@ func (client *Client) sendRecordBatch(ctx context.Context, records []queues.Reco
 
 // progressively increase the retry delay
 func (client *Client) progressiveDelay(delay time.Duration) time.Duration {
-	r := rand.New(rand.NewSource(time.Now().Unix()))
-	newDelay := delay + time.Duration(r.Intn(int(delay/time.Second)))*time.Second
+	r, _ := rand.Int(rand.Reader, big.NewInt(int64(delay/time.Second)))
+	// if err != nil {
+	// 	fmt.Println("error:", err)
+	// }
+	newDelay := delay + time.Duration(r.Int64())*time.Second
 	if newDelay > client.MaxDelay {
 		return client.MaxDelay
 	}

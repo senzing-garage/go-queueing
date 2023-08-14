@@ -2,9 +2,10 @@ package rabbitmq
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"log"
-	"math/rand"
+	"math/big"
 	"net/url"
 	"os"
 	"time"
@@ -295,7 +296,11 @@ func (client *Client) changeChannel(channel *amqp.Channel) {
 
 // progressively increase the retry delay
 func (client *Client) progressiveDelay(delay time.Duration) time.Duration {
-	return delay + time.Duration(rand.Intn(int(delay/time.Second)))*time.Second
+	r, _ := rand.Int(rand.Reader, big.NewInt(int64(delay/time.Second)))
+	// if err != nil {
+	// 	fmt.Println("error:", err)
+	// }
+	return delay + time.Duration(r.Int64())*time.Second
 }
 
 // ----------------------------------------------------------------------------
