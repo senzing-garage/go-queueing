@@ -83,9 +83,9 @@ func (j *RabbitConsumerJob) OnError(err error) {
 	fmt.Println("Worker error:", err)
 	fmt.Println("Failed to move record:", j.id)
 	if j.delivery.Redelivered {
-		j.delivery.Nack(false, false)
+		_ = j.delivery.Nack(false, false)
 	} else {
-		j.delivery.Nack(false, true)
+		_ = j.delivery.Nack(false, true)
 	}
 }
 
