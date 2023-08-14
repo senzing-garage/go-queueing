@@ -67,14 +67,13 @@ func (j *RabbitConsumerJob) Execute(ctx context.Context) error {
 		}
 
 		// when we successfully process a delivery, acknowledge it.
-		j.delivery.Ack(false)
+		return j.delivery.Ack(false)
 	} else {
 		// logger.LogMessageFromError(MessageIdFormat, 2001, "create new szRecord", newRecordErr)
 		fmt.Println(time.Now(), "Invalid delivery from RabbitMQ:", j.delivery.MessageId)
 		// when we get an invalid delivery, negatively acknowledge and send to the dead letter queue
-		j.delivery.Nack(false, false)
+		return j.delivery.Nack(false, false)
 	}
-	return nil
 }
 
 // ----------------------------------------------------------------------------
