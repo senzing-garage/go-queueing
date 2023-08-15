@@ -87,7 +87,7 @@ func (j *RabbitConsumerJob) OnError(err error) {
 // them to Senzing.
 // - Workers restart when they are killed or die.
 // - respond to standard system signals.
-func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers int, g2engine *g2api.G2engine, withInfo bool) error {
+func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers int, g2engine *g2api.G2engine, withInfo bool, logLevel string, jsonOutput bool) error {
 
 	//default to the max number of OS threads
 	if numberOfWorkers <= 0 {
@@ -109,7 +109,7 @@ func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers
 		}
 	}
 
-	client, err := NewClient(urlString)
+	client, err := NewClient(urlString, logLevel, jsonOutput)
 	if err != nil {
 		return fmt.Errorf("unable to get a new RabbitMQ client %w", err)
 	}
