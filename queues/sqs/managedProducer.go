@@ -67,7 +67,7 @@ func processRecordBatch(ctx context.Context, recordchan <-chan queues.Record, ne
 // the given queue.
 // - Workers restart when they are killed or die.
 // - respond to standard system signals.
-func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers int, recordchan <-chan queues.Record) {
+func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers int, recordchan <-chan queues.Record, logLevel string, jsonOutput bool) {
 
 	//default to the max number of OS threads
 	if numberOfWorkers <= 0 {
@@ -78,7 +78,7 @@ func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers
 	ctx, cancel := context.WithCancel(ctx)
 
 	clientPool = make(chan *Client, numberOfWorkers)
-	newClientFn := func() (*Client, error) { return NewClient(ctx, urlString) }
+	newClientFn := func() (*Client, error) { return NewClient(ctx, urlString, logLevel, jsonOutput) }
 
 	// populate an initial client pool
 	go createClients(ctx, numberOfWorkers, newClientFn)

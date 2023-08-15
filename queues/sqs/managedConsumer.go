@@ -16,10 +16,6 @@ import (
 
 var jobPool chan SQSJob
 
-type ManagedConsumerError struct {
-	error
-}
-
 // ----------------------------------------------------------------------------
 // Job implementation
 // ----------------------------------------------------------------------------
@@ -121,26 +117,26 @@ func (j *SQSJob) OnError(err error) {
 // them to Senzing.
 // - Workers restart when they are killed or die.
 // - respond to standard system signals.
-func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers int, g2engine g2api.G2engine, withInfo bool, visibilitySeconds int32) error {
+func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers int, g2engine g2api.G2engine, withInfo bool, visibilitySeconds int32, logLevel string, jsonOutput bool) error {
 
 	if g2engine == nil {
-		return errors.New("G2 Engine not set, unable to start the managed consumer")
+		return errors.New("the G2 Engine is not set, unable to start the managed consumer")
 	}
 
 	//default to the max number of OS threads
 	if numberOfWorkers <= 0 {
 		numberOfWorkers = runtime.GOMAXPROCS(0)
 	}
-	fmt.Println(time.Now(), "Number of consumer workers:", numberOfWorkers)
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	client, err := NewClient(ctx, urlString)
+	client, err := NewClient(ctx, urlString, logLevel, jsonOutput)
 	if err != nil {
-		return ManagedConsumerError{util.WrapError(err, "unable to get a new SQS client")}
+		return fmt.Errorf("unable to get a new SQS client, %w", err)
 	}
 	defer client.Close()
+	client.log(2012, numberOfWorkers)
 
 	// setup jobs that will be used to process SQS deliveries
 	jobPool = make(chan SQSJob, numberOfWorkers)
@@ -156,8 +152,8 @@ func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers
 
 	messages, err := client.Consume(ctx, visibilitySeconds)
 	if err != nil {
-		fmt.Println(time.Now(), "Error getting delivery channel:", err)
-		return ManagedConsumerError{util.WrapError(err, "unable to get a new SQS message channel")}
+		client.log(4019, err)
+		return fmt.Errorf("unable to get a new SQS message channel %w", err)
 	}
 
 	p := pool.New().WithMaxGoroutines(numberOfWorkers)
@@ -167,7 +163,6 @@ func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers
 		job := <-jobPool
 		job.message = message
 		job.startTime = time.Now()
-		fmt.Println("DEBUG: add to job queue. jobCount:", jobCount, "msg id:", *job.message.MessageId)
 		p.Go(func() {
 			err := job.Execute(ctx, visibilitySeconds)
 			if err != nil {
@@ -177,7 +172,7 @@ func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers
 
 		jobCount++
 		if jobCount%10000 == 0 {
-			fmt.Println(time.Now(), "INFO: Jobs added to job queue:", jobCount)
+			client.log(2010, jobCount)
 		}
 	}
 
@@ -191,7 +186,7 @@ func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers
 	ok := true
 	for ok {
 		job, ok = <-jobPool
-		fmt.Println("Job:", job.id, "used:", job.usedCount)
+		client.log(2011, job.id, job.usedCount)
 	}
 
 	return nil

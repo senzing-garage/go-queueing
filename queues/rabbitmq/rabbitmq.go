@@ -39,11 +39,6 @@ type Client struct {
 	resendDelay    time.Duration
 }
 
-var (
-// errAlreadyClosed = errors.New("already closed: not connected to the server")
-// errShutdown      = errors.New("client is shutting down")
-)
-
 // ----------------------------------------------------------------------------
 
 // New creates a single RabbitMQ client that will automatically
@@ -66,6 +61,8 @@ func NewClient(urlString, logLevel string, jsonOutput bool) (*Client, error) {
 
 	client := Client{
 		ExchangeName:   queryMap["exchange"][0],
+		LogLevel:       logLevel,
+		JSONOutput:     jsonOutput,
 		QueueName:      queryMap["queue-name"][0],
 		ReconnectDelay: 2 * time.Second,
 		ReInitDelay:    2 * time.Second,
@@ -75,6 +72,7 @@ func NewClient(urlString, logLevel string, jsonOutput bool) (*Client, error) {
 		done:        make(chan bool),
 		notifyReady: make(chan interface{}),
 	}
+	client.SetLogLevel(context.Background(), logLevel)
 	client.logger = client.getLogger()
 	client.reconnectDelay = client.ReconnectDelay
 	client.reInitDelay = client.ReInitDelay

@@ -1,4 +1,4 @@
-package rabbitmq
+package sqs
 
 // ----------------------------------------------------------------------------
 // Constants
@@ -20,22 +20,30 @@ var IDMessages = map[int]string{
 	// TRACE 	0000-0999 	Entry/Exit tracing 				May contain sensitive data.
 	// DEBUG 	1000-1999 	Values seen during processing 	May contain sensitive data.
 	// INFO 	2000-2999 	Process steps achieved
-	2001: Prefix + "Connecting to RabbitMQ at %s",
-	2002: Prefix + "Connected to RabbitMQ at %s",
-	2003: Prefix + "Connection closed. Reconnecting...",
-	2004: Prefix + "Channel closed. Re-running init...",
-	2005: Prefix + "RabbitMQ client is setup!",
+	2005: Prefix + "SQS client is setup! QueueURL: %v, Queue name: %v, DeadLetterQueueURL: %v",
+	2006: Prefix + "AWS response Message ID: %s",
+	2007: Prefix + "Successfully sent %v records to the queue",
+	2008: Prefix + "SQS Client delete message: %v",
+	2009: Prefix + "SQS Client set message visibility, MessageID: %v",
+	2010: Prefix + "Jobs added to job queue:: %v",
+	2011: Prefix + "Job ID: %v, Job count: %d",
+	2012: Prefix + "Number of consumer workers: %d",
 
 	// WARN 	3000-3999 	Unexpected situations, but processing was successful
-	3001: Prefix + "Push failed. Retrying in %v... MessageId: %v, error: %w",
-	3002: Prefix + "Push did not confirm. Retrying in %v... MessageId: %v, error: %w",
-
 	// ERROR 	4000-4999 	Unexpected situations, processing was not successful
-	4001: Prefix + "Failed to connect. Retrying in %v, error: %w",
-	4002: Prefix + "Failed to initialize. Retrying in %v, error: %w",
-	4003: Prefix + "Attempting to init RabbitMQ client while shutting down. error: %w",
-	4004: Prefix + "Channel close error: %w",
-	4005: Prefix + "Connection close error: %w",
+	4006: Prefix + "Unable to retrieve queue redrive policy, error: %w",
+	4007: Prefix + "Error unmarshalling redrive policy, error: %w",
+	4008: Prefix + "Error sending to the dead record queue, error: %w",
+	4009: Prefix + "Error sending the record, error: %w",
+	4010: Prefix + "Error sending the record batch, error: %w",
+	4011: Prefix + "Error sending record in batch, MessageID: %v, error: %v",
+	4012: Prefix + "Error sending the last record batch, error: %w",
+	4013: Prefix + "Error receiving records, error: %v",
+	4014: Prefix + "No records found.",
+	4015: Prefix + "Error deleting records, error: %v",
+	4016: Prefix + "Error changing message visibility, MessageID: %v, error: %v",
+	4017: Prefix + "Error getting delivery channel, error: %v",
+
 	// FATAL 	5000-5999 	The process needs to shutdown
 	// PANIC 	6000-6999 	The underlying system is at issue
 	//
