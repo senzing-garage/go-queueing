@@ -4,18 +4,12 @@ import (
 	"context"
 	"fmt"
 	"runtime"
-	"time"
 
-	"github.com/roncewind/go-util/util"
 	"github.com/senzing/go-queueing/queues"
 	"github.com/sourcegraph/conc/pool"
 )
 
 var clientPool chan *Client
-
-type ManagedProducerError struct {
-	error
-}
 
 // ----------------------------------------------------------------------------
 // Job implementation
@@ -36,17 +30,20 @@ func processRecord(ctx context.Context, record queues.Record, newClientFn func()
 	err = client.Push(record)
 	if err != nil {
 		// on error, create a new RabbitMQ client
-		err = ManagedProducerError{util.WrapError(err, err.Error())}
+		err = fmt.Errorf("error pushing record, creating new client %w", err)
 		//put a new client in the pool, dropping the current one
 		newClient, newClientErr := newClientFn()
 		if newClientErr != nil {
-			err = ManagedProducerError{util.WrapError(newClientErr, newClientErr.Error())}
+			err = fmt.Errorf("error creating new client %w %w", newClientErr, err)
 		} else {
 			clientPool <- newClient
 		}
 		// make sure to close the old client
-		return client.Close()
-
+		closeErr := client.Close()
+		if closeErr != nil {
+			err = fmt.Errorf("error closing client %w %w", closeErr, err)
+		}
+		return
 	}
 	// return the client to the pool when done
 	clientPool <- client
@@ -65,12 +62,14 @@ func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers
 	if numberOfWorkers <= 0 {
 		numberOfWorkers = runtime.GOMAXPROCS(0)
 	}
-	fmt.Println(time.Now(), "Number of producer workers:", numberOfWorkers)
 
 	ctx, cancel := context.WithCancel(ctx)
+	SetLogLevel(ctx, logLevel)
+	logger = getLogger()
 
+	log(2013, numberOfWorkers)
 	clientPool = make(chan *Client, numberOfWorkers)
-	newClientFn := func() (*Client, error) { return NewClient(urlString, logLevel, jsonOutput) }
+	newClientFn := func() (*Client, error) { return NewClient(urlString) }
 
 	// populate an initial client pool
 	go createClients(ctx, numberOfWorkers, newClientFn)
@@ -81,8 +80,7 @@ func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers
 		p.Go(func() {
 			err := processRecord(ctx, record, newClientFn)
 			if err != nil {
-				fmt.Println("Worker error:", err)
-				fmt.Println("Failed to move record:", record.GetMessageID())
+				log(4006, record.GetMessageID(), err)
 			}
 		})
 	}
@@ -92,7 +90,7 @@ func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers
 
 	// clean up after ourselves
 	cancel()
-	fmt.Println(time.Now(), "Clean up job queue and client pool.")
+	log(2014)
 	close(clientPool)
 	// drain the client pool, closing rabbit mq connections
 	for len(clientPool) > 0 {
@@ -114,12 +112,12 @@ func createClients(ctx context.Context, numOfClients int, newClientFn func() (*C
 	for i := 0; i < numOfClients; i++ {
 		client, err := newClientFn()
 		if err != nil {
-			errorStack = ManagedProducerError{util.WrapError(err, err.Error())}
+			errorStack = fmt.Errorf("error creating new client %w", err)
 		} else {
 			countOfClientsCreated++
 			clientPool <- client
 		}
 	}
-	fmt.Println(time.Now(), countOfClientsCreated, "rabbitMQ clients created,", numOfClients, "requested")
+
 	return errorStack
 }

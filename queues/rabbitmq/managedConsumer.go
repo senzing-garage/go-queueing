@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"runtime"
-	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/senzing/g2-sdk-go/g2api"
@@ -93,10 +92,13 @@ func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers
 	if numberOfWorkers <= 0 {
 		numberOfWorkers = runtime.GOMAXPROCS(0)
 	}
-	// fmt.Println(time.Now(), "Number of consumer workers:", numberOfWorkers)
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+	SetLogLevel(ctx, logLevel)
+	logger = getLogger()
+
+	log(2012, numberOfWorkers)
 
 	// setup jobs that will be used to process RabbitMQ deliveries
 	jobPool = make(chan *RabbitConsumerJob, numberOfWorkers)
@@ -109,7 +111,7 @@ func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers
 		}
 	}
 
-	client, err := NewClient(urlString, logLevel, jsonOutput)
+	client, err := NewClient(urlString)
 	if err != nil {
 		return fmt.Errorf("unable to get a new RabbitMQ client %w", err)
 	}
@@ -134,7 +136,7 @@ func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers
 
 		jobCount++
 		if jobCount%10000 == 0 {
-			fmt.Println(time.Now(), "Jobs added to job queue:", jobCount)
+			log(2010, jobCount)
 		}
 	}
 
@@ -148,7 +150,7 @@ func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers
 	ok := true
 	for ok {
 		job, ok = <-jobPool
-		fmt.Println("Job:", job.id, "used:", job.usedCount)
+		log(2011, job.id, job.usedCount)
 	}
 
 	return nil

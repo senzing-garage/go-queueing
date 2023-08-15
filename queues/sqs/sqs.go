@@ -16,14 +16,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/roncewind/go-util/util"
-	"github.com/senzing/go-logging/logging"
 	"github.com/senzing/go-queueing/queues"
 )
 
 type Client struct {
 	DeadLetterQueueURL string
-	JSONOutput         bool
-	LogLevel           string
 	QueueName          string
 	QueueURL           *string
 	// desired / default delay durations
@@ -33,7 +30,6 @@ type Client struct {
 	RoutingKey     string
 
 	isReady bool
-	logger  logging.LoggingInterface
 	// current delay durations
 	reconnectDelay time.Duration
 	resendDelay    time.Duration
@@ -49,14 +45,10 @@ type Client struct {
 // New creates a single SQS client
 func NewClient(ctx context.Context, urlString string, logLevel string, jsonOutput bool) (*Client, error) {
 	client := Client{
-		LogLevel:       logLevel,
-		JSONOutput:     jsonOutput,
 		MaxDelay:       10 * time.Minute,
 		ReconnectDelay: 2 * time.Second,
 		ResendDelay:    1 * time.Second,
 	}
-	client.SetLogLevel(context.Background(), logLevel)
-	client.logger = client.getLogger()
 	// load the default aws config
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
@@ -73,7 +65,7 @@ func NewClient(ctx context.Context, urlString string, logLevel string, jsonOutpu
 	client.resendDelay = client.ResendDelay
 	client.getRedrivePolicy(ctx)
 	client.isReady = true
-	client.log(2005, *client.QueueURL, client.QueueName, client.DeadLetterQueueURL)
+	log(2005, *client.QueueURL, client.QueueName, client.DeadLetterQueueURL)
 	return &client, nil
 }
 
@@ -118,14 +110,14 @@ func (client *Client) getRedrivePolicy(ctx context.Context) {
 	}
 	queueAttributes, err := client.sqsClient.GetQueueAttributes(ctx, params)
 	if err != nil {
-		client.log(4006, err)
+		log(4006, err)
 		return
 	}
 	redrive := queueAttributes.Attributes[string(types.QueueAttributeNameRedrivePolicy)]
 	var redrivePolicy redrivePolicy
 	err = json.Unmarshal([]byte(redrive), &redrivePolicy)
 	if err != nil {
-		client.log(4007, err)
+		log(4007, err)
 		return
 	}
 	fields := strings.Split(redrivePolicy.DeadLetterTargetArn, ":")
@@ -168,11 +160,11 @@ func (client *Client) sendDeadRecord(ctx context.Context, record types.Message) 
 
 	resp, err := client.sqsDLQClient.SendMessage(ctx, messageInput)
 	if err != nil {
-		client.log(4008, err)
+		log(4008, err)
 		return
 	}
 
-	client.log(2006, *resp.MessageId)
+	log(2006, *resp.MessageId)
 
 	return nil
 }
@@ -197,11 +189,11 @@ func (client *Client) sendRecord(ctx context.Context, record queues.Record) (err
 
 	resp, err := client.sqsClient.SendMessage(ctx, messageInput)
 	if err != nil {
-		client.log(4009, err)
+		log(4009, err)
 		return
 	}
 
-	client.log(2006, *resp.MessageId)
+	log(2006, *resp.MessageId)
 
 	return nil
 }
@@ -247,15 +239,15 @@ func (client *Client) sendRecordBatch(ctx context.Context, records []queues.Reco
 
 	resp, err := client.sqsClient.SendMessageBatch(ctx, messageInput)
 	if err != nil {
-		client.log(4010, err)
+		log(4010, err)
 	}
 	if resp != nil {
 		if len(resp.Failed) > 0 {
 			for _, fail := range resp.Failed {
-				client.log(4011, fail.Id, fail.Message)
+				log(4011, fail.Id, fail.Message)
 			}
 		}
-		client.log(2007, len(resp.Successful))
+		log(2007, len(resp.Successful))
 	}
 
 	return
@@ -297,7 +289,7 @@ func (client *Client) Push(ctx context.Context, record queues.Record) error {
 	for {
 		err := client.sendRecord(ctx, record)
 		if err != nil {
-			client.log(3001, client.resendDelay, record.GetMessageID(), err)
+			log(3001, client.resendDelay, record.GetMessageID(), err)
 			select {
 			case <-ctx.Done():
 				return fmt.Errorf("context cancelled: %v", ctx.Err())
@@ -332,7 +324,7 @@ func (client *Client) PushBatch(ctx context.Context, recordchan <-chan queues.Re
 		if i >= 10 {
 			err := client.sendRecordBatch(ctx, records)
 			if err != nil {
-				client.log(4010, err)
+				log(4010, err)
 			}
 			i = 0
 			records = make([]queues.Record, 10)
@@ -342,7 +334,7 @@ func (client *Client) PushBatch(ctx context.Context, recordchan <-chan queues.Re
 	if i > 0 {
 		err := client.sendRecordBatch(ctx, records)
 		if err != nil {
-			client.log(4012, err)
+			log(4012, err)
 		}
 	}
 	return nil
@@ -363,11 +355,11 @@ func (client *Client) receiveMessage(ctx context.Context, visibilitySeconds int3
 
 	msg, err := client.sqsClient.ReceiveMessage(ctx, receiveInput)
 	if err != nil {
-		client.log(4013, err)
+		log(4013, err)
 		return nil, fmt.Errorf("error receiving records %w", err)
 	}
 	if msg.Messages == nil || len(msg.Messages) <= 0 {
-		client.log(4014)
+		log(4014)
 		return nil, fmt.Errorf("no messages")
 	}
 
@@ -419,11 +411,11 @@ func (client *Client) RemoveMessage(ctx context.Context, msg types.Message) erro
 		ReceiptHandle: msg.ReceiptHandle,
 	}
 
-	client.log(2008, msg.MessageId)
+	log(2008, msg.MessageId)
 
 	_, err := client.sqsClient.DeleteMessage(ctx, deleteMessageInput)
 	if err != nil {
-		client.log(4015, err)
+		log(4015, err)
 		return fmt.Errorf("error deleting records, %w", err)
 	}
 	return nil
@@ -448,10 +440,10 @@ func (client *Client) SetMessageVisibility(ctx context.Context, msg types.Messag
 		VisibilityTimeout: seconds,
 	}
 
-	client.log(2009, msg.MessageId)
+	log(2009, msg.MessageId)
 	_, err := client.sqsClient.ChangeMessageVisibility(ctx, setVisibilityInput)
 	if err != nil {
-		client.log(4016, msg.MessageId, err)
+		log(4016, msg.MessageId, err)
 		return err
 	}
 	return nil
@@ -462,54 +454,4 @@ func (client *Client) SetMessageVisibility(ctx context.Context, msg types.Messag
 // Close will cleanly shutdown the channel and connection.
 func (client *Client) Close() error {
 	return nil
-}
-
-// ----------------------------------------------------------------------------
-// Logging --------------------------------------------------------------------
-// ----------------------------------------------------------------------------
-
-// Get the Logger singleton.
-func (c *Client) getLogger() logging.LoggingInterface {
-	var err error = nil
-	if c.logger == nil {
-		options := []interface{}{
-			&logging.OptionCallerSkip{Value: 4},
-		}
-		c.logger, err = logging.NewSenzingToolsLogger(ComponentID, IDMessages, options...)
-		if err != nil {
-			panic(err)
-		}
-	}
-	return c.logger
-}
-
-// Log message.
-func (c *Client) log(messageNumber int, details ...interface{}) {
-	if c.JSONOutput {
-		c.getLogger().Log(messageNumber, details...)
-	} else {
-		fmt.Println(fmt.Sprintf(IDMessages[messageNumber], details...))
-	}
-}
-
-/*
-The SetLogLevel method sets the level of logging.
-
-Input
-  - ctx: A context to control lifecycle.
-  - logLevel: The desired log level. TRACE, DEBUG, INFO, WARN, ERROR, FATAL or PANIC.
-*/
-func (c *Client) SetLogLevel(ctx context.Context, logLevelName string) error {
-	var err error = nil
-
-	// Verify value of logLevelName.
-
-	if !logging.IsValidLogLevelName(logLevelName) {
-		return fmt.Errorf("invalid error level: %s", logLevelName)
-	}
-
-	// Set ValidateImpl log level.
-
-	err = c.getLogger().SetLogLevel(logLevelName)
-	return err
 }

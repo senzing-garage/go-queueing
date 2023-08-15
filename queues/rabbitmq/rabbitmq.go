@@ -9,14 +9,11 @@ import (
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/senzing/go-logging/logging"
 	"github.com/senzing/go-queueing/queues"
 )
 
 type Client struct {
 	ExchangeName string
-	JSONOutput   bool
-	LogLevel     string
 	QueueName    string
 	// desired / default delay durations
 	ReconnectDelay time.Duration
@@ -28,7 +25,6 @@ type Client struct {
 	channel         *amqp.Channel
 	done            chan bool
 	isReady         bool
-	logger          logging.LoggingInterface
 	notifyConnClose chan *amqp.Error
 	notifyChanClose chan *amqp.Error
 	notifyConfirm   chan amqp.Confirmation
@@ -43,7 +39,7 @@ type Client struct {
 
 // New creates a single RabbitMQ client that will automatically
 // attempt to connect to the server.  Reconnection delays are set to defaults.
-func NewClient(urlString, logLevel string, jsonOutput bool) (*Client, error) {
+func NewClient(urlString string) (*Client, error) {
 
 	u, err := url.Parse(urlString)
 	if err != nil {
@@ -61,8 +57,6 @@ func NewClient(urlString, logLevel string, jsonOutput bool) (*Client, error) {
 
 	client := Client{
 		ExchangeName:   queryMap["exchange"][0],
-		LogLevel:       logLevel,
-		JSONOutput:     jsonOutput,
 		QueueName:      queryMap["queue-name"][0],
 		ReconnectDelay: 2 * time.Second,
 		ReInitDelay:    2 * time.Second,
@@ -72,8 +66,6 @@ func NewClient(urlString, logLevel string, jsonOutput bool) (*Client, error) {
 		done:        make(chan bool),
 		notifyReady: make(chan interface{}),
 	}
-	client.SetLogLevel(context.Background(), logLevel)
-	client.logger = client.getLogger()
 	client.reconnectDelay = client.ReconnectDelay
 	client.reInitDelay = client.ReInitDelay
 	client.resendDelay = client.ResendDelay
@@ -100,7 +92,6 @@ func Init(client *Client, urlString string) *Client {
 
 	// set up internals
 	client.done = make(chan bool)
-	client.logger = client.getLogger()
 	client.notifyReady = make(chan interface{})
 
 	client.reconnectDelay = client.ReconnectDelay
@@ -117,12 +108,12 @@ func Init(client *Client, urlString string) *Client {
 func (client *Client) handleReconnect(addr string) {
 	for {
 		client.isReady = false
-		client.log(2001, addr)
+		log(2001, addr)
 
 		conn, err := client.connect(addr)
 
 		if err != nil {
-			client.log(4001, client.reconnectDelay, err)
+			log(4001, client.reconnectDelay, err)
 
 			select {
 			case <-client.done:
@@ -152,7 +143,7 @@ func (client *Client) connect(addr string) (*amqp.Connection, error) {
 	}
 
 	client.changeConnection(conn)
-	client.log(2002, addr)
+	log(2002, addr)
 	return conn, nil
 }
 
@@ -167,7 +158,7 @@ func (client *Client) handleReInit(conn *amqp.Connection) bool {
 		err := client.init(conn)
 
 		if err != nil {
-			client.log(4002, client.reInitDelay, err)
+			log(4002, client.reInitDelay, err)
 
 			select {
 			case <-client.done:
@@ -185,10 +176,10 @@ func (client *Client) handleReInit(conn *amqp.Connection) bool {
 		case <-client.done:
 			return true
 		case <-client.notifyConnClose:
-			client.log(2003)
+			log(2003)
 			return false
 		case <-client.notifyChanClose:
-			client.log(2004)
+			log(2004)
 		}
 	}
 }
@@ -199,7 +190,7 @@ func (client *Client) handleReInit(conn *amqp.Connection) bool {
 func (client *Client) init(conn *amqp.Connection) error {
 	defer func() {
 		if r := recover(); r != nil {
-			client.log(4003, r)
+			log(4003, r)
 		}
 	}()
 	ch, err := conn.Channel()
@@ -253,7 +244,7 @@ func (client *Client) init(conn *amqp.Connection) error {
 	client.changeChannel(ch)
 	client.isReady = true
 	client.notifyReady <- struct{}{}
-	client.log(2005)
+	log(2005)
 
 	return nil
 }
@@ -307,7 +298,7 @@ func (client *Client) Push(record queues.Record) error {
 	for {
 		err := client.UnsafePush(record)
 		if err != nil {
-			client.log(3001, client.resendDelay, record.GetMessageID(), err)
+			log(3001, client.resendDelay, record.GetMessageID(), err)
 			select {
 			case <-client.done:
 				return fmt.Errorf("client is shutting down")
@@ -326,7 +317,7 @@ func (client *Client) Push(record queues.Record) error {
 		case <-time.After(client.resendDelay):
 			client.resendDelay = client.progressiveDelay(client.resendDelay)
 		}
-		client.log(3002, client.resendDelay, record.GetMessageID())
+		log(3002, client.resendDelay, record.GetMessageID())
 	}
 }
 
@@ -412,64 +403,14 @@ func (client *Client) Close() error {
 	//FIXME:  connection.Close() closes underlying channels so do we need this?
 	err := client.channel.Close()
 	if err != nil {
-		client.log(4004, err)
+		log(4004, err)
 	}
 
 	err = client.connection.Close()
 	if err != nil {
-		client.log(4005, err)
+		log(4005, err)
 	}
 
 	client.isReady = false
 	return nil
-}
-
-// ----------------------------------------------------------------------------
-// Logging --------------------------------------------------------------------
-// ----------------------------------------------------------------------------
-
-// Get the Logger singleton.
-func (c *Client) getLogger() logging.LoggingInterface {
-	var err error = nil
-	if c.logger == nil {
-		options := []interface{}{
-			&logging.OptionCallerSkip{Value: 4},
-		}
-		c.logger, err = logging.NewSenzingToolsLogger(ComponentID, IDMessages, options...)
-		if err != nil {
-			panic(err)
-		}
-	}
-	return c.logger
-}
-
-// Log message.
-func (c *Client) log(messageNumber int, details ...interface{}) {
-	if c.JSONOutput {
-		c.getLogger().Log(messageNumber, details...)
-	} else {
-		fmt.Println(fmt.Sprintf(IDMessages[messageNumber], details...))
-	}
-}
-
-/*
-The SetLogLevel method sets the level of logging.
-
-Input
-  - ctx: A context to control lifecycle.
-  - logLevel: The desired log level. TRACE, DEBUG, INFO, WARN, ERROR, FATAL or PANIC.
-*/
-func (c *Client) SetLogLevel(ctx context.Context, logLevelName string) error {
-	var err error = nil
-
-	// Verify value of logLevelName.
-
-	if !logging.IsValidLogLevelName(logLevelName) {
-		return fmt.Errorf("invalid error level: %s", logLevelName)
-	}
-
-	// Set ValidateImpl log level.
-
-	err = c.getLogger().SetLogLevel(logLevelName)
-	return err
 }

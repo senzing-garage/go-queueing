@@ -28,6 +28,7 @@ var IDMessages = map[int]string{
 	2010: Prefix + "Jobs added to job queue:: %v",
 	2011: Prefix + "Job ID: %v, Job count: %d",
 	2012: Prefix + "Number of consumer workers: %d",
+	2013: Prefix + "Number of producer workers: %d",
 
 	// WARN 	3000-3999 	Unexpected situations, but processing was successful
 	// ERROR 	4000-4999 	Unexpected situations, processing was not successful

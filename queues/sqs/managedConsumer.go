@@ -136,7 +136,7 @@ func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers
 		return fmt.Errorf("unable to get a new SQS client, %w", err)
 	}
 	defer client.Close()
-	client.log(2012, numberOfWorkers)
+	log(2012, numberOfWorkers)
 
 	// setup jobs that will be used to process SQS deliveries
 	jobPool = make(chan SQSJob, numberOfWorkers)
@@ -152,7 +152,7 @@ func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers
 
 	messages, err := client.Consume(ctx, visibilitySeconds)
 	if err != nil {
-		client.log(4019, err)
+		log(4019, err)
 		return fmt.Errorf("unable to get a new SQS message channel %w", err)
 	}
 
@@ -172,7 +172,7 @@ func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers
 
 		jobCount++
 		if jobCount%10000 == 0 {
-			client.log(2010, jobCount)
+			log(2010, jobCount)
 		}
 	}
 
@@ -186,7 +186,7 @@ func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers
 	ok := true
 	for ok {
 		job, ok = <-jobPool
-		client.log(2011, job.id, job.usedCount)
+		log(2011, job.id, job.usedCount)
 	}
 
 	return nil
