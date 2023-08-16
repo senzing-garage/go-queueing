@@ -34,6 +34,7 @@ var IDMessages = map[int]string{
 	// WARN 	3000-3999 	Unexpected situations, but processing was successful
 	3001: Prefix + "Push failed. Retrying in %v... MessageId: %v, error: %w",
 	3002: Prefix + "Push did not confirm. Retrying in %v... MessageId: %v, error: %w",
+	3003: Prefix + "Unable to set log level to %s, error: %w",
 
 	// ERROR 	4000-4999 	Unexpected situations, processing was not successful
 	4001: Prefix + "Failed to connect. Retrying in %v, error: %w",

@@ -76,6 +76,9 @@ func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers
 	fmt.Println(time.Now(), "Number of producer workers:", numberOfWorkers)
 
 	ctx, cancel := context.WithCancel(ctx)
+	if err := SetLogLevel(ctx, logLevel); err != nil {
+		log(3003, logLevel, err)
+	}
 
 	clientPool = make(chan *Client, numberOfWorkers)
 	newClientFn := func() (*Client, error) { return NewClient(ctx, urlString, logLevel, jsonOutput) }

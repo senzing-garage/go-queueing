@@ -31,6 +31,8 @@ var IDMessages = map[int]string{
 	2013: Prefix + "Number of producer workers: %d",
 
 	// WARN 	3000-3999 	Unexpected situations, but processing was successful
+	3003: Prefix + "Unable to set log level to %s, error: %w",
+
 	// ERROR 	4000-4999 	Unexpected situations, processing was not successful
 	4006: Prefix + "Unable to retrieve queue redrive policy, error: %w",
 	4007: Prefix + "Error unmarshalling redrive policy, error: %w",

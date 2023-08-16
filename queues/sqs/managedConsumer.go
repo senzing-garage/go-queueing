@@ -130,6 +130,9 @@ func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+	if err := SetLogLevel(ctx, logLevel); err != nil {
+		log(3003, logLevel, err)
+	}
 
 	client, err := NewClient(ctx, urlString, logLevel, jsonOutput)
 	if err != nil {

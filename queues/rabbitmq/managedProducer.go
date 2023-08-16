@@ -64,7 +64,9 @@ func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
-	SetLogLevel(ctx, logLevel)
+	if err := SetLogLevel(ctx, logLevel); err != nil {
+		log(3003, logLevel, err)
+	}
 	logger = getLogger()
 
 	log(2013, numberOfWorkers)
