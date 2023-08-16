@@ -6,41 +6,36 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/roncewind/go-util/util"
 	"github.com/senzing/go-queueing/queues"
 	"github.com/sourcegraph/conc/pool"
 )
 
 var clientPool chan *Client
 
-type ManagedProducerError struct {
-	error
-}
-
 // ----------------------------------------------------------------------------
+// DELETE ME??  This is the old way of doing things, one record at a time.
 
 // read a record from the record channel and push it to the RabbitMQ queue
-func processRecord(ctx context.Context, record queues.Record, newClientFn func() (*Client, error)) (err error) {
-	client := <-clientPool
-	err = client.Push(ctx, record)
-	if err != nil {
-		// on error, create a new SQS client
-		err = ManagedProducerError{util.WrapError(err, err.Error())}
-		//put a new client in the pool, dropping the current one
-		newClient, newClientErr := newClientFn()
-		if newClientErr != nil {
-			err = ManagedProducerError{util.WrapError(newClientErr, newClientErr.Error())}
-		} else {
-			clientPool <- newClient
-		}
-		// make sure to close the old client
-		client.Close()
-		return
-	}
-	// return the client to the pool when done
-	clientPool <- client
-	return
-}
+// func processRecord(ctx context.Context, record queues.Record, newClientFn func() (*Client, error)) (err error) {
+// 	client := <-clientPool
+// 	err = client.Push(ctx, record)
+// 	if err != nil {
+// 		// on error, create a new SQS client
+// 		err = fmt.Errorf("error pushing record batch %w", err)
+// 		//put a new client in the pool, dropping the current one
+// 		newClient, newClientErr := newClientFn()
+// 		if newClientErr != nil {
+// 			err = fmt.Errorf("error creating a new client %w", newClientErr)
+// 		} else {
+// 			clientPool <- newClient
+// 		}
+// 		// make sure to close the old client
+// 		return fmt.Errorf("error creating a new client %w %w", client.Close(), err)
+// 	}
+// 	// return the client to the pool when done
+// 	clientPool <- client
+// 	return
+// }
 
 // ----------------------------------------------------------------------------
 
@@ -50,17 +45,16 @@ func processRecordBatch(ctx context.Context, recordchan <-chan queues.Record, ne
 	err = client.PushBatch(ctx, recordchan)
 	if err != nil {
 		// on error, create a new SQS client
-		err = ManagedProducerError{util.WrapError(err, err.Error())}
+		err = fmt.Errorf("error pushing record batch %w", err)
 		//put a new client in the pool, dropping the current one
 		newClient, newClientErr := newClientFn()
 		if newClientErr != nil {
-			err = ManagedProducerError{util.WrapError(newClientErr, newClientErr.Error())}
+			err = fmt.Errorf("error creating a new client %w", newClientErr)
 		} else {
 			clientPool <- newClient
 		}
 		// make sure to close the old client
-		client.Close()
-		return
+		return fmt.Errorf("error creating a new client %w %w", client.Close(), err)
 	}
 	// return the client to the pool when done
 	clientPool <- client
@@ -73,7 +67,7 @@ func processRecordBatch(ctx context.Context, recordchan <-chan queues.Record, ne
 // the given queue.
 // - Workers restart when they are killed or die.
 // - respond to standard system signals.
-func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers int, recordchan <-chan queues.Record) {
+func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers int, recordchan <-chan queues.Record, logLevel string, jsonOutput bool) {
 
 	//default to the max number of OS threads
 	if numberOfWorkers <= 0 {
@@ -82,9 +76,12 @@ func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers
 	fmt.Println(time.Now(), "Number of producer workers:", numberOfWorkers)
 
 	ctx, cancel := context.WithCancel(ctx)
+	if err := SetLogLevel(ctx, logLevel); err != nil {
+		log(3003, logLevel, err)
+	}
 
 	clientPool = make(chan *Client, numberOfWorkers)
-	newClientFn := func() (*Client, error) { return NewClient(ctx, urlString) }
+	newClientFn := func() (*Client, error) { return NewClient(ctx, urlString, logLevel, jsonOutput) }
 
 	// populate an initial client pool
 	go createClients(ctx, numberOfWorkers, newClientFn)
@@ -111,7 +108,8 @@ func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers
 	for len(clientPool) > 0 {
 		client, ok := <-clientPool
 		if ok && client != nil {
-			client.Close()
+			//swallow the error, we're shutting down anyway
+			_ = client.Close()
 		}
 	}
 
@@ -126,7 +124,7 @@ func createClients(ctx context.Context, numOfClients int, newClientFn func() (*C
 	for i := 0; i < numOfClients; i++ {
 		client, err := newClientFn()
 		if err != nil {
-			errorStack = ManagedProducerError{util.WrapError(err, err.Error())}
+			errorStack = fmt.Errorf("error creating a new client %w", err)
 		} else {
 			countOfClientsCreated++
 			clientPool <- client

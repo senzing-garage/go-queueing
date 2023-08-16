@@ -2,15 +2,13 @@ package rabbitmq
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
-	"log"
-	"math/rand"
+	"math/big"
 	"net/url"
-	"os"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/roncewind/go-util/util"
 	"github.com/senzing/go-queueing/queues"
 )
 
@@ -27,7 +25,6 @@ type Client struct {
 	channel         *amqp.Channel
 	done            chan bool
 	isReady         bool
-	logger          *log.Logger
 	notifyConnClose chan *amqp.Error
 	notifyChanClose chan *amqp.Error
 	notifyConfirm   chan amqp.Confirmation
@@ -38,17 +35,6 @@ type Client struct {
 	resendDelay    time.Duration
 }
 
-type RabbitError struct {
-	error
-}
-
-var (
-	errAlreadyClosed = RabbitError{util.WrapError(nil, "already closed: not connected to the server")}
-	errShutdown      = RabbitError{util.WrapError(nil, "client is shutting down")}
-	// errAlreadyClosed = errors.New("already closed: not connected to the server")
-	// errShutdown      = errors.New("client is shutting down")
-)
-
 // ----------------------------------------------------------------------------
 
 // New creates a single RabbitMQ client that will automatically
@@ -57,13 +43,12 @@ func NewClient(urlString string) (*Client, error) {
 
 	u, err := url.Parse(urlString)
 	if err != nil {
-		return nil, RabbitError{util.WrapError(err, "unable to parse RabbitMQ URL string")}
+		return nil, fmt.Errorf("unable to parse RabbitMQ URL string %w", err)
 	}
 
 	queryMap, _ := url.ParseQuery(u.RawQuery)
 	if len(queryMap["exchange"]) < 1 || len(queryMap["queue-name"]) < 1 {
-		return nil, RabbitError{util.WrapError(err, "please define an exchange and queue-name as query parameters")}
-		// panic("Please define an exchange and queue-name as query parameters.")
+		return nil, fmt.Errorf("please define an exchange and queue-name as query parameters")
 	}
 	routingKey := queryMap["queue-name"][0]
 	if len(queryMap["routing-key"]) > 0 {
@@ -79,7 +64,6 @@ func NewClient(urlString string) (*Client, error) {
 		RoutingKey:     routingKey,
 
 		done:        make(chan bool),
-		logger:      log.New(os.Stdout, "", log.LstdFlags),
 		notifyReady: make(chan interface{}),
 	}
 	client.reconnectDelay = client.ReconnectDelay
@@ -108,7 +92,6 @@ func Init(client *Client, urlString string) *Client {
 
 	// set up internals
 	client.done = make(chan bool)
-	client.logger = log.New(os.Stdout, "", log.LstdFlags)
 	client.notifyReady = make(chan interface{})
 
 	client.reconnectDelay = client.ReconnectDelay
@@ -125,22 +108,19 @@ func Init(client *Client, urlString string) *Client {
 func (client *Client) handleReconnect(addr string) {
 	for {
 		client.isReady = false
-		client.logger.Println("Attempting to connect")
+		log(2001, addr)
 
 		conn, err := client.connect(addr)
 
 		if err != nil {
-			client.logger.Println("Connect error:", err)
-			client.logger.Println("Failed to connect. Retrying in", client.reconnectDelay)
+			log(4001, client.reconnectDelay, err)
 
 			select {
 			case <-client.done:
-				client.logger.Println("done.")
 				return
 			case <-time.After(client.reconnectDelay):
 				client.reconnectDelay = client.progressiveDelay(client.reconnectDelay)
 			}
-			client.logger.Println("continue.")
 			continue
 		}
 
@@ -159,11 +139,11 @@ func (client *Client) connect(addr string) (*amqp.Connection, error) {
 	conn, err := amqp.Dial(addr)
 
 	if err != nil {
-		return nil, RabbitError{util.WrapError(err, "unable to dial RabbitMQ address: %v", addr)}
+		return nil, fmt.Errorf("unable to dial RabbitMQ address: %v, error: %w", addr, err)
 	}
 
 	client.changeConnection(conn)
-	client.logger.Println("Connected!")
+	log(2002, addr)
 	return conn, nil
 }
 
@@ -178,7 +158,7 @@ func (client *Client) handleReInit(conn *amqp.Connection) bool {
 		err := client.init(conn)
 
 		if err != nil {
-			client.logger.Println("Failed to initialize channel. Retrying in", client.reInitDelay)
+			log(4002, client.reInitDelay, err)
 
 			select {
 			case <-client.done:
@@ -196,10 +176,10 @@ func (client *Client) handleReInit(conn *amqp.Connection) bool {
 		case <-client.done:
 			return true
 		case <-client.notifyConnClose:
-			client.logger.Println("Connection closed. Reconnecting...")
+			log(2003)
 			return false
 		case <-client.notifyChanClose:
-			client.logger.Println("Channel closed. Re-running init...")
+			log(2004)
 		}
 	}
 }
@@ -210,13 +190,13 @@ func (client *Client) handleReInit(conn *amqp.Connection) bool {
 func (client *Client) init(conn *amqp.Connection) error {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("Attempting to init RabbitMQ client while shutting down. Error:", r)
+			log(4003, r)
 		}
 	}()
 	ch, err := conn.Channel()
 
 	if err != nil {
-		return RabbitError{util.WrapError(err, "unable to initialize the RabbitMQ channel")}
+		return fmt.Errorf("unable to initialize the RabbitMQ channel %w", err)
 	}
 
 	err = ch.Confirm(false)
@@ -234,7 +214,7 @@ func (client *Client) init(conn *amqp.Connection) error {
 		nil,                 // arguments
 	)
 	if err != nil {
-		return RabbitError{util.WrapError(err, "unable to declare the RabbitMQ exchange")}
+		return fmt.Errorf("unable to declare the RabbitMQ exchange %w", err)
 	}
 
 	var q amqp.Queue
@@ -247,7 +227,7 @@ func (client *Client) init(conn *amqp.Connection) error {
 		nil,              // arguments
 	)
 	if err != nil {
-		return RabbitError{util.WrapError(err, "unable to initialize the RabbitMQ queue")}
+		return fmt.Errorf("unable to initialize the RabbitMQ queue %w", err)
 	}
 
 	err = ch.QueueBind(
@@ -258,13 +238,13 @@ func (client *Client) init(conn *amqp.Connection) error {
 		nil,
 	)
 	if err != nil {
-		return RabbitError{util.WrapError(err, "unable to bind the RabbitMQ queue")}
+		return fmt.Errorf("unable to bind the RabbitMQ queue %w", err)
 	}
 
 	client.changeChannel(ch)
 	client.isReady = true
 	client.notifyReady <- struct{}{}
-	client.logger.Println("Setup!")
+	log(2005)
 
 	return nil
 }
@@ -295,7 +275,11 @@ func (client *Client) changeChannel(channel *amqp.Channel) {
 
 // progressively increase the retry delay
 func (client *Client) progressiveDelay(delay time.Duration) time.Duration {
-	return delay + time.Duration(rand.Intn(int(delay/time.Second)))*time.Second
+	r, _ := rand.Int(rand.Reader, big.NewInt(int64(delay/time.Second)))
+	// if err != nil {
+	// 	fmt.Println("error:", err)
+	// }
+	return delay + time.Duration(r.Int64())*time.Second
 }
 
 // ----------------------------------------------------------------------------
@@ -314,10 +298,10 @@ func (client *Client) Push(record queues.Record) error {
 	for {
 		err := client.UnsafePush(record)
 		if err != nil {
-			client.logger.Println("Push failed. Retrying in", client.resendDelay, ". MessageId:", record.GetMessageId()) //TODO:  debug or trace logging, add messageId
+			log(3001, client.resendDelay, record.GetMessageID(), err)
 			select {
 			case <-client.done:
-				return errShutdown //TODO:  error message to include messageId?
+				return fmt.Errorf("client is shutting down")
 			case <-time.After(client.resendDelay):
 				client.resendDelay = client.progressiveDelay(client.resendDelay)
 			}
@@ -333,7 +317,7 @@ func (client *Client) Push(record queues.Record) error {
 		case <-time.After(client.resendDelay):
 			client.resendDelay = client.progressiveDelay(client.resendDelay)
 		}
-		client.logger.Println("Push didn't confirm. Retrying in", client.resendDelay, ". MessageId:", record.GetMessageId()) //TODO:  debug or trace logging, add messageId
+		log(3002, client.resendDelay, record.GetMessageID())
 	}
 }
 
@@ -363,7 +347,7 @@ func (client *Client) UnsafePush(record queues.Record) error {
 			Body:         []byte(record.GetMessage()),
 			ContentType:  "text/plain",
 			DeliveryMode: amqp.Persistent,
-			MessageId:    record.GetMessageId(),
+			MessageId:    record.GetMessageID(),
 		},
 	)
 }
@@ -392,7 +376,7 @@ func (client *Client) Consume(prefetch int) (<-chan amqp.Delivery, error) {
 		0,        // prefetch size
 		false,    // global
 	); err != nil {
-		return nil, RabbitError{util.WrapError(err, "unable to set the RabbitMQ channel quality of service")}
+		return nil, fmt.Errorf("unable to set the RabbitMQ channel quality of service %w", err)
 	}
 
 	return client.channel.Consume(
@@ -411,7 +395,7 @@ func (client *Client) Consume(prefetch int) (<-chan amqp.Delivery, error) {
 // Close will cleanly shutdown the channel and connection.
 func (client *Client) Close() error {
 	if !client.isReady {
-		return errAlreadyClosed
+		return fmt.Errorf("already closed: not connected to the server")
 	}
 	close(client.done)
 	close(client.notifyReady)
@@ -419,12 +403,12 @@ func (client *Client) Close() error {
 	//FIXME:  connection.Close() closes underlying channels so do we need this?
 	err := client.channel.Close()
 	if err != nil {
-		client.logger.Println("channel close error:", err)
+		log(4004, err)
 	}
 
 	err = client.connection.Close()
 	if err != nil {
-		client.logger.Println("connection close error:", err)
+		log(4005, err)
 	}
 
 	client.isReady = false

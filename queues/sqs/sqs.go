@@ -2,13 +2,12 @@ package sqs
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
-	"math/rand"
+	"math/big"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
@@ -31,7 +30,6 @@ type Client struct {
 	RoutingKey     string
 
 	isReady bool
-	logger  *log.Logger
 	// current delay durations
 	reconnectDelay time.Duration
 	resendDelay    time.Duration
@@ -42,22 +40,14 @@ type Client struct {
 	sqsURL       *sqs.GetQueueUrlOutput
 }
 
-type SQSError struct {
-	error
-}
-
-var errShutdown = SQSError{util.WrapError(nil, "client is shutting down")}
-
 // ----------------------------------------------------------------------------
 
 // New creates a single SQS client
-func NewClient(ctx context.Context, urlString string) (*Client, error) {
+func NewClient(ctx context.Context, urlString string, logLevel string, jsonOutput bool) (*Client, error) {
 	client := Client{
 		MaxDelay:       10 * time.Minute,
 		ReconnectDelay: 2 * time.Second,
 		ResendDelay:    1 * time.Second,
-
-		logger: log.New(os.Stdout, "", log.LstdFlags),
 	}
 	// load the default aws config
 	cfg, err := config.LoadDefaultConfig(ctx)
@@ -75,9 +65,7 @@ func NewClient(ctx context.Context, urlString string) (*Client, error) {
 	client.resendDelay = client.ResendDelay
 	client.getRedrivePolicy(ctx)
 	client.isReady = true
-	client.logger.Println("QueueURL:", *client.QueueURL)
-	client.logger.Println("dead letter queue URL:", client.DeadLetterQueueURL)
-	client.logger.Println("Setup!")
+	log(2005, *client.QueueURL, client.QueueName, client.DeadLetterQueueURL)
 	return &client, nil
 }
 
@@ -87,8 +75,7 @@ func NewClient(ctx context.Context, urlString string) (*Client, error) {
 func (client *Client) getQueueURL(ctx context.Context, urlString string) error {
 	u, err := url.Parse(urlString)
 	if err != nil {
-		return SQSError{util.WrapError(err, "unable to parse SQS URL string")}
-		// panic(err)
+		return fmt.Errorf("unable to parse SQS URL string %w", err)
 	}
 	queryMap, _ := url.ParseQuery(u.RawQuery)
 	if len(queryMap["queue-name"]) < 1 {
@@ -101,8 +88,7 @@ func (client *Client) getQueueURL(ctx context.Context, urlString string) error {
 		}
 		sqsURL, err := client.sqsClient.GetQueueUrl(ctx, input)
 		if err != nil {
-			client.logger.Printf("error getting the queue URL: %v", err)
-			return SQSError{util.WrapError(err, fmt.Sprintf("unable to retrieve SQS URL from: %s", urlString))}
+			return fmt.Errorf("unable to retrieve SQS URL from: %s, error: %w", urlString, err)
 		}
 		client.sqsURL = sqsURL
 		client.QueueURL = sqsURL.QueueUrl
@@ -124,14 +110,14 @@ func (client *Client) getRedrivePolicy(ctx context.Context) {
 	}
 	queueAttributes, err := client.sqsClient.GetQueueAttributes(ctx, params)
 	if err != nil {
-		client.logger.Println("Unable to retrieve queue redrive policy", err)
+		log(4006, err)
 		return
 	}
 	redrive := queueAttributes.Attributes[string(types.QueueAttributeNameRedrivePolicy)]
 	var redrivePolicy redrivePolicy
 	err = json.Unmarshal([]byte(redrive), &redrivePolicy)
 	if err != nil {
-		client.logger.Println("error unmarshalling redrive policy", err)
+		log(4007, err)
 		return
 	}
 	fields := strings.Split(redrivePolicy.DeadLetterTargetArn, ":")
@@ -174,11 +160,11 @@ func (client *Client) sendDeadRecord(ctx context.Context, record types.Message) 
 
 	resp, err := client.sqsDLQClient.SendMessage(ctx, messageInput)
 	if err != nil {
-		client.logger.Printf("error sending the dead record: %v", err)
+		log(4008, err)
 		return
 	}
 
-	client.logger.Printf("AWS response Message ID: %s", *resp.MessageId)
+	log(2006, *resp.MessageId)
 
 	return nil
 }
@@ -194,7 +180,7 @@ func (client *Client) sendRecord(ctx context.Context, record queues.Record) (err
 		MessageAttributes: map[string]types.MessageAttributeValue{
 			"MessageID": {
 				DataType:    aws.String("String"),
-				StringValue: aws.String(record.GetMessageId()),
+				StringValue: aws.String(record.GetMessageID()),
 			},
 		},
 		MessageBody: aws.String(record.GetMessage()),
@@ -203,11 +189,11 @@ func (client *Client) sendRecord(ctx context.Context, record queues.Record) (err
 
 	resp, err := client.sqsClient.SendMessage(ctx, messageInput)
 	if err != nil {
-		client.logger.Printf("error sending the message: %v", err)
+		log(4009, err)
 		return
 	}
 
-	client.logger.Printf("AWS response Message ID: %s", *resp.MessageId)
+	log(2006, *resp.MessageId)
 
 	return nil
 }
@@ -217,9 +203,14 @@ func (client *Client) sendRecord(ctx context.Context, record queues.Record) (err
 // send a message to a queue.
 func (client *Client) sendRecordBatch(ctx context.Context, records []queues.Record) (err error) {
 	var messages []types.SendMessageBatchRequestEntry = make([]types.SendMessageBatchRequestEntry, len(records))
-	r := rand.New(rand.NewSource(time.Now().Unix()))
-	id := r.Intn(10000)
-	i := 0
+	// r := rand.New(rand.NewSource(time.Now().Unix()))
+	// id := r.Intn(10000)
+	r, _ := rand.Int(rand.Reader, big.NewInt(10000))
+	// if err != nil {
+	// 	fmt.Println("error:", err)
+	// }
+	id := r.Int64()
+	i := int64(0)
 	for _, record := range records {
 		if record != nil {
 			messages[i] = types.SendMessageBatchRequestEntry{
@@ -228,7 +219,7 @@ func (client *Client) sendRecordBatch(ctx context.Context, records []queues.Reco
 				MessageAttributes: map[string]types.MessageAttributeValue{
 					"MessageID": {
 						DataType:    aws.String("String"),
-						StringValue: aws.String(record.GetMessageId()),
+						StringValue: aws.String(record.GetMessageID()),
 					},
 				},
 				MessageBody: aws.String(record.GetMessage()), //?  aws.String(string(utils.Base64Encode([]byte(body)))),
@@ -248,16 +239,15 @@ func (client *Client) sendRecordBatch(ctx context.Context, records []queues.Reco
 
 	resp, err := client.sqsClient.SendMessageBatch(ctx, messageInput)
 	if err != nil {
-		client.logger.Printf("error sending the message batch: %v", err)
+		log(4010, err)
 	}
 	if resp != nil {
 		if len(resp.Failed) > 0 {
 			for _, fail := range resp.Failed {
-				client.logger.Println("error sending the message in batch:", fail.Message)
-				client.logger.Println("message id:", fail.Id)
+				log(4011, fail.Id, fail.Message)
 			}
 		}
-		client.logger.Println("Successfully sent:", len(resp.Successful), "messages")
+		log(2007, len(resp.Successful))
 	}
 
 	return
@@ -267,8 +257,11 @@ func (client *Client) sendRecordBatch(ctx context.Context, records []queues.Reco
 
 // progressively increase the retry delay
 func (client *Client) progressiveDelay(delay time.Duration) time.Duration {
-	r := rand.New(rand.NewSource(time.Now().Unix()))
-	newDelay := delay + time.Duration(r.Intn(int(delay/time.Second)))*time.Second
+	r, _ := rand.Int(rand.Reader, big.NewInt(int64(delay/time.Second)))
+	// if err != nil {
+	// 	fmt.Println("error:", err)
+	// }
+	newDelay := delay + time.Duration(r.Int64())*time.Second
 	if newDelay > client.MaxDelay {
 		return client.MaxDelay
 	}
@@ -290,16 +283,16 @@ func (client *Client) PushDeadRecord(ctx context.Context, record types.Message) 
 func (client *Client) Push(ctx context.Context, record queues.Record) error {
 
 	if !client.isReady {
-		return SQSError{util.WrapError(nil, "SQS client is not ready.")}
+		return fmt.Errorf("the SQS client is not ready")
 	}
 
 	for {
 		err := client.sendRecord(ctx, record)
 		if err != nil {
-			client.logger.Println("Push failed. Retrying in", client.resendDelay, ". MessageId:", record.GetMessageId()) //:  debug or trace logging, add messageId
+			log(3001, client.resendDelay, record.GetMessageID(), err)
 			select {
 			case <-ctx.Done():
-				return errShutdown
+				return fmt.Errorf("context cancelled: %v", ctx.Err())
 			case <-time.After(client.resendDelay):
 				//:  resend forever???
 				client.resendDelay = client.progressiveDelay(client.resendDelay)
@@ -320,20 +313,18 @@ func (client *Client) Push(ctx context.Context, record queues.Record) error {
 func (client *Client) PushBatch(ctx context.Context, recordchan <-chan queues.Record) error {
 
 	if !client.isReady {
-		// wait for client to be ready
-		// <-client.notifyReady
-		return SQSError{util.WrapError(nil, "SQS client is not ready.")}
+		return fmt.Errorf("the SQS client is not ready")
 	}
 	i := 0
 	records := make([]queues.Record, 10)
 	for record := range util.OrDone(ctx, recordchan) {
 		records[i] = record
-		fmt.Println("batch push record:!", record.GetMessageId())
+		fmt.Println("batch push record:!", record.GetMessageID())
 		i++
 		if i >= 10 {
 			err := client.sendRecordBatch(ctx, records)
 			if err != nil {
-				client.logger.Println("sendRecordBatch error:", err)
+				log(4010, err)
 			}
 			i = 0
 			records = make([]queues.Record, 10)
@@ -343,7 +334,7 @@ func (client *Client) PushBatch(ctx context.Context, recordchan <-chan queues.Re
 	if i > 0 {
 		err := client.sendRecordBatch(ctx, records)
 		if err != nil {
-			client.logger.Println("last batch, sendRecordBatch error:", err)
+			log(4012, err)
 		}
 	}
 	return nil
@@ -364,12 +355,12 @@ func (client *Client) receiveMessage(ctx context.Context, visibilitySeconds int3
 
 	msg, err := client.sqsClient.ReceiveMessage(ctx, receiveInput)
 	if err != nil {
-		client.logger.Printf("error receiving messages: %v", err)
-		return nil, SQSError{util.WrapError(err, "error receiving messages")}
+		log(4013, err)
+		return nil, fmt.Errorf("error receiving records %w", err)
 	}
 	if msg.Messages == nil || len(msg.Messages) <= 0 {
-		client.logger.Printf("No messages found")
-		return nil, SQSError{util.WrapError(nil, "No messages.")}
+		log(4014)
+		return nil, fmt.Errorf("no messages")
 	}
 
 	return msg, nil
@@ -380,7 +371,7 @@ func (client *Client) receiveMessage(ctx context.Context, visibilitySeconds int3
 // Consume will continuously put queue messages on the channel.
 func (client *Client) Consume(ctx context.Context, visibilitySeconds int32) (<-chan types.Message, error) {
 	if !client.isReady {
-		return nil, SQSError{util.WrapError(nil, "SQS client is not ready.")}
+		return nil, fmt.Errorf("the SQS client is not ready")
 	}
 	outChan := make(chan types.Message, 10)
 	go func() {
@@ -420,12 +411,12 @@ func (client *Client) RemoveMessage(ctx context.Context, msg types.Message) erro
 		ReceiptHandle: msg.ReceiptHandle,
 	}
 
-	fmt.Println("SQS Client delete message:", msg.MessageId)
+	log(2008, msg.MessageId)
+
 	_, err := client.sqsClient.DeleteMessage(ctx, deleteMessageInput)
 	if err != nil {
-		client.logger.Println("Got an error deleting the message:")
-		client.logger.Println(err)
-		return err
+		log(4015, err)
+		return fmt.Errorf("error deleting records, %w", err)
 	}
 	return nil
 }
@@ -449,11 +440,10 @@ func (client *Client) SetMessageVisibility(ctx context.Context, msg types.Messag
 		VisibilityTimeout: seconds,
 	}
 
-	fmt.Println("SQS Client set message visibility:", msg.MessageId)
+	log(2009, msg.MessageId)
 	_, err := client.sqsClient.ChangeMessageVisibility(ctx, setVisibilityInput)
 	if err != nil {
-		client.logger.Println("Got an error changing message visibility:")
-		client.logger.Println(err)
+		log(4016, msg.MessageId, err)
 		return err
 	}
 	return nil

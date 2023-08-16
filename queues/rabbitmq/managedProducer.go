@@ -4,29 +4,23 @@ import (
 	"context"
 	"fmt"
 	"runtime"
-	"time"
 
-	"github.com/roncewind/go-util/util"
 	"github.com/senzing/go-queueing/queues"
 	"github.com/sourcegraph/conc/pool"
 )
 
 var clientPool chan *Client
 
-type ManagedProducerError struct {
-	error
-}
-
 // ----------------------------------------------------------------------------
 // Job implementation
 // ----------------------------------------------------------------------------
 
 // define a structure that will implement the Job interface
-type RabbitProducerJob struct {
-	id          int
-	newClientFn func() (*Client, error)
-	record      queues.Record
-}
+// type RabbitProducerJob struct {
+// 	id          int
+// 	newClientFn func() (*Client, error)
+// 	record      queues.Record
+// }
 
 // ----------------------------------------------------------------------------
 
@@ -36,16 +30,19 @@ func processRecord(ctx context.Context, record queues.Record, newClientFn func()
 	err = client.Push(record)
 	if err != nil {
 		// on error, create a new RabbitMQ client
-		err = ManagedProducerError{util.WrapError(err, err.Error())}
+		err = fmt.Errorf("error pushing record, creating new client %w", err)
 		//put a new client in the pool, dropping the current one
 		newClient, newClientErr := newClientFn()
 		if newClientErr != nil {
-			err = ManagedProducerError{util.WrapError(newClientErr, newClientErr.Error())}
+			err = fmt.Errorf("error creating new client %w %w", newClientErr, err)
 		} else {
 			clientPool <- newClient
 		}
 		// make sure to close the old client
-		client.Close()
+		closeErr := client.Close()
+		if closeErr != nil {
+			err = fmt.Errorf("error closing client %w %w", closeErr, err)
+		}
 		return
 	}
 	// return the client to the pool when done
@@ -59,16 +56,20 @@ func processRecord(ctx context.Context, record queues.Record, newClientFn func()
 // the given queue.
 // - Workers restart when they are killed or die.
 // - respond to standard system signals.
-func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers int, recordchan <-chan queues.Record) {
+func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers int, recordchan <-chan queues.Record, logLevel string, jsonOutput bool) {
 
 	//default to the max number of OS threads
 	if numberOfWorkers <= 0 {
 		numberOfWorkers = runtime.GOMAXPROCS(0)
 	}
-	fmt.Println(time.Now(), "Number of producer workers:", numberOfWorkers)
 
 	ctx, cancel := context.WithCancel(ctx)
+	if err := SetLogLevel(ctx, logLevel); err != nil {
+		log(3003, logLevel, err)
+	}
+	logger = getLogger()
 
+	log(2013, numberOfWorkers)
 	clientPool = make(chan *Client, numberOfWorkers)
 	newClientFn := func() (*Client, error) { return NewClient(urlString) }
 
@@ -81,8 +82,7 @@ func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers
 		p.Go(func() {
 			err := processRecord(ctx, record, newClientFn)
 			if err != nil {
-				fmt.Println("Worker error:", err)
-				fmt.Println("Failed to move record:", record.GetMessageId())
+				log(4006, record.GetMessageID(), err)
 			}
 		})
 	}
@@ -92,13 +92,14 @@ func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers
 
 	// clean up after ourselves
 	cancel()
-	fmt.Println(time.Now(), "Clean up job queue and client pool.")
+	log(2014)
 	close(clientPool)
 	// drain the client pool, closing rabbit mq connections
 	for len(clientPool) > 0 {
 		client, ok := <-clientPool
 		if ok && client != nil {
-			client.Close()
+			//swallow any errors on cleanup
+			_ = client.Close()
 		}
 	}
 
@@ -113,12 +114,12 @@ func createClients(ctx context.Context, numOfClients int, newClientFn func() (*C
 	for i := 0; i < numOfClients; i++ {
 		client, err := newClientFn()
 		if err != nil {
-			errorStack = ManagedProducerError{util.WrapError(err, err.Error())}
+			errorStack = fmt.Errorf("error creating new client %w", err)
 		} else {
 			countOfClientsCreated++
 			clientPool <- client
 		}
 	}
-	fmt.Println(time.Now(), countOfClientsCreated, "rabbitMQ clients created,", numOfClients, "requested")
+
 	return errorStack
 }
