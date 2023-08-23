@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/aws/aws-sdk-go-v2 v1.21.0
 	github.com/aws/aws-sdk-go-v2/config v1.18.36
-	github.com/aws/aws-sdk-go-v2/service/sqs v1.24.4
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.24.5
 	github.com/rabbitmq/amqp091-go v1.8.1
 	github.com/roncewind/go-util v0.0.5
 	github.com/senzing/g2-sdk-go v0.6.8
@@ -33,7 +33,7 @@ require (
 	golang.org/x/net v0.14.0 // indirect
 	golang.org/x/sys v0.11.0 // indirect
 	golang.org/x/text v0.12.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20230815205213-6bfd019c3878 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20230822172742-b8732ec3820d // indirect
 	google.golang.org/grpc v1.57.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 )
