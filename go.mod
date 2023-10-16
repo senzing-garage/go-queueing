@@ -10,7 +10,7 @@ require (
 	github.com/roncewind/go-util v0.0.5
 	github.com/senzing/g2-sdk-go v0.7.4
 	github.com/senzing/go-common v0.3.0
-	github.com/senzing/go-logging v1.3.2
+	github.com/senzing/go-logging v1.3.3
 	github.com/sourcegraph/conc v0.3.0
 )
 
@@ -26,10 +26,10 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.23.2 // indirect
 	github.com/aws/smithy-go v1.15.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
-	github.com/senzing/go-messaging v1.3.2 // indirect
+	github.com/senzing/go-messaging v1.3.3 // indirect
 	github.com/senzing/go-observing v0.2.8 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63 // indirect
+	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
 	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/sys v0.13.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
