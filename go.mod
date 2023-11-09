@@ -3,7 +3,7 @@ module github.com/senzing/go-queueing
 go 1.21
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.22.1
+	github.com/aws/aws-sdk-go-v2 v1.22.2
 	github.com/aws/aws-sdk-go-v2/config v1.22.2
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.26.0
 	github.com/rabbitmq/amqp091-go v1.9.0
