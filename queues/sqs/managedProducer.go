@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/senzing/go-queueing/queues"
+	"github.com/senzing-garage/go-queueing/queues"
 	"github.com/sourcegraph/conc/pool"
 )
 

@@ -8,7 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
-	"github.com/senzing/go-queueing/queues"
+	"github.com/senzing-garage/go-queueing/queues"
 )
 
 func TestNewClient(t *testing.T) {

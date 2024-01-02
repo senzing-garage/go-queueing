@@ -4,7 +4,7 @@ package sqs
 // Constants
 // ----------------------------------------------------------------------------
 
-// go-queueing is 6481:  https://github.com/Senzing/knowledge-base/blob/main/lists/senzing-product-ids.md
+// go-queueing is 6481:  https://github.com/senzing-garage/knowledge-base/blob/main/lists/senzing-product-ids.md
 const ComponentID = 6481
 
 // Log message prefix.

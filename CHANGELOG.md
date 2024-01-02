@@ -14,15 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed in 0.1.4
 
-- Refactor to [template-go](https://github.com/Senzing/template-go)
+- Refactor to [template-go](https://github.com/senzing-garage/template-go)
 - Update dependencies
   - github.com/aws/aws-sdk-go-v2 v1.21.2
   - github.com/aws/aws-sdk-go-v2/config v1.19.0
   - github.com/aws/aws-sdk-go-v2/service/sqs v1.24.7
   - github.com/rabbitmq/amqp091-go v1.9.0
-  - github.com/senzing/g2-sdk-go v0.7.4
-  - github.com/senzing/go-common v0.3.1
-  - github.com/senzing/go-logging v1.3.3
+  - github.com/senzing-garage/g2-sdk-go v0.7.4
+  - github.com/senzing-garage/go-common v0.3.1
+  - github.com/senzing-garage/go-logging v1.3.3
 
 ## [0.1.3] - 2023-08-16
 
