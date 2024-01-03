@@ -6,7 +6,7 @@ import (
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/senzing/go-queueing/queues"
+	"github.com/senzing-garage/go-queueing/queues"
 )
 
 func TestNewClient(t *testing.T) {

@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/senzing/go-queueing/queues"
+	"github.com/senzing-garage/go-queueing/queues"
 )
 
 func Test_processRecordBatch(t *testing.T) {
