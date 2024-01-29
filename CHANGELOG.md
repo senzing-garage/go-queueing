@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 -
 
+## [0.2.1] - 2024-01-29
+
+### Changed in 0.2.1
+
+- Update dependencies
+  - github.com/aws/aws-sdk-go-v2 v1.24.1
+  - github.com/aws/aws-sdk-go-v2/config v1.26.6
+  - github.com/aws/aws-sdk-go-v2/service/sqs v1.29.7
+  - github.com/senzing/g2-sdk-go v0.9.0
+
 ## [0.2.0] - 2024-01-02
 
 ### Changed in 0.2.0
