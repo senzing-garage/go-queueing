@@ -9,8 +9,8 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/roncewind/go-util/util"
+	"github.com/senzing-garage/g2-sdk-go/g2api"
 	"github.com/senzing-garage/go-common/record"
-	"github.com/senzing/g2-sdk-go/g2api"
 	"github.com/sourcegraph/conc/pool"
 )
 
