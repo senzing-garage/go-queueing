@@ -44,6 +44,8 @@ github.com/rabbitmq/amqp091-go v1.9.0 h1:qrQtyzB4H8BQgEuJwhmVQqVHB9O4+MNDJCCAcpc
 github.com/rabbitmq/amqp091-go v1.9.0/go.mod h1:+jPrT9iY2eLjRaMSRHUhc3z14E/l85kv/f+6luSD3pc=
 github.com/roncewind/go-util v0.0.5 h1:SiXs7Si68b/5paClS7QPyJ4yDnOQ3lJdi7SXhxgjBFo=
 github.com/roncewind/go-util v0.0.5/go.mod h1:3W93f0MuKIQJA21OqGPcjzw87zc1TFFTn/O0lWB2Ahg=
+github.com/senzing-garage/g2-sdk-go v0.9.0 h1:Noa62gKeY5opeUwIi7/VHKjDR/VX21BZiooqt1ewJBI=
+github.com/senzing-garage/g2-sdk-go v0.9.0/go.mod h1:09Rk4ZnOgXuN/uwnBHSs/TJ27IP8Dg7jW8vK4MWEEWY=
 github.com/senzing-garage/go-common v0.4.0 h1:/6/5yNY80udkbOzSAX0Vvx2+0kD9JF7fhqNUlRj2Vho=
 github.com/senzing-garage/go-common v0.4.0/go.mod h1:f2EIjPzAcULG8eKUVebIUNS2qgMVcJRgmQY9fpBDF9E=
 github.com/senzing-garage/go-logging v1.4.0 h1:i+mLVKmD26I2Dy1GBSd7O5MexHyVJoHak2joWn7oq+4=
@@ -52,8 +54,6 @@ github.com/senzing-garage/go-messaging v1.4.0 h1:XNnOsx4yHslhggNJkZD+p3/Fv/zwhbx
 github.com/senzing-garage/go-messaging v1.4.0/go.mod h1:V/B3SZSZY7cw2Nc7rZQkLaJu/PRyDA4AbviccDRjW1I=
 github.com/senzing-garage/go-observing v0.3.0 h1:uWKZtiW4dwQJx8i7Y+7QrdrBJ8NPSOTZu2+6q0gy1DI=
 github.com/senzing-garage/go-observing v0.3.0/go.mod h1:Bxl4c7G9hQ8iqSxZp/omolUhmkEdrbCzLt0s0VkPdnw=
-github.com/senzing/g2-sdk-go v0.9.0 h1:c0GKZhnNqbUzOUZPoQXcMQnb5GWbJ9miknYEMw5oICA=
-github.com/senzing/g2-sdk-go v0.9.0/go.mod h1:TlEpfAEcjbzedMNhcphjTzcVnx45zcc6EbuNBvh6ifo=
 github.com/sourcegraph/conc v0.3.0 h1:OQTbbt6P72L20UqAkXXuLOj79LfEanQ+YQFNpLA9ySo=
 github.com/sourcegraph/conc v0.3.0/go.mod h1:Sdozi7LEKbFPqYX2/J+iBAM6HpqSLTASQIKqDmF7Mt0=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=

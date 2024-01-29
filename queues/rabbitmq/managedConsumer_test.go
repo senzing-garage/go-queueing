@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/senzing/g2-sdk-go/g2api"
+	"github.com/senzing-garage/g2-sdk-go/g2api"
 )
 
 func TestRabbitConsumerJob_Execute(t *testing.T) {
