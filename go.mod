@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.31.0
 	github.com/rabbitmq/amqp091-go v1.9.0
 	github.com/roncewind/go-util v0.0.5
-	github.com/senzing-garage/g2-sdk-go v0.9.0
+	github.com/senzing-garage/g2-sdk-go v0.10.0
 	github.com/senzing-garage/go-common v0.4.0
 	github.com/senzing-garage/go-logging v1.4.0
 	github.com/sourcegraph/conc v0.3.0
@@ -34,7 +34,7 @@ require (
 	golang.org/x/net v0.21.0 // indirect
 	golang.org/x/sys v0.17.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240213162025-012b6fc9bca9 // indirect
-	google.golang.org/grpc v1.61.1 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240221002015-b0ce06bbee7c // indirect
+	google.golang.org/grpc v1.62.0 // indirect
 	google.golang.org/protobuf v1.32.0 // indirect
 )
