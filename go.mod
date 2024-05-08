@@ -6,7 +6,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.26.1
 	github.com/aws/aws-sdk-go-v2/config v1.27.12
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.31.4
-	github.com/rabbitmq/amqp091-go v1.9.0
+	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/roncewind/go-util v0.0.5
 	github.com/senzing-garage/g2-sdk-go v0.10.1
 	github.com/senzing-garage/go-common v0.4.0
