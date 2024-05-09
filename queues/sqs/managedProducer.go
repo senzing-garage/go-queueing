@@ -119,6 +119,7 @@ func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers
 
 // create a number of clients and put them into the client queue
 func createClients(ctx context.Context, numOfClients int, newClientFn func() (*Client, error)) error {
+	_ = ctx
 	countOfClientsCreated := 0
 	var errorStack error = nil
 	for i := 0; i < numOfClients; i++ {

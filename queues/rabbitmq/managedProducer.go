@@ -26,6 +26,7 @@ var clientPool chan *Client
 
 // read a record from the record channel and push it to the RabbitMQ queue
 func processRecord(ctx context.Context, record queues.Record, newClientFn func() (*Client, error)) (err error) {
+	_ = ctx
 	client := <-clientPool
 	err = client.Push(record)
 	if err != nil {
@@ -109,6 +110,7 @@ func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers
 
 // create a number of clients and put them into the client queue
 func createClients(ctx context.Context, numOfClients int, newClientFn func() (*Client, error)) error {
+	_ = ctx
 	countOfClientsCreated := 0
 	var errorStack error = nil
 	for i := 0; i < numOfClients; i++ {

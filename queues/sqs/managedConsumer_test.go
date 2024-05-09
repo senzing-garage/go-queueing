@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/senzing-garage/g2-sdk-go/g2api"
+	"github.com/senzing-garage/sz-sdk-go/sz"
 )
 
 func TestSQSJob_Execute(t *testing.T) {
@@ -52,7 +52,7 @@ func TestStartManagedConsumer(t *testing.T) {
 		ctx               context.Context
 		urlString         string
 		numberOfWorkers   int
-		g2engine          g2api.G2engine
+		szEngine          sz.SzEngine
 		withInfo          bool
 		visibilitySeconds int32
 		logLevel          string
@@ -67,7 +67,7 @@ func TestStartManagedConsumer(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := StartManagedConsumer(tt.args.ctx, tt.args.urlString, tt.args.numberOfWorkers, tt.args.g2engine, tt.args.withInfo, tt.args.visibilitySeconds, tt.args.logLevel, tt.args.jsonOutput); (err != nil) != tt.wantErr {
+			if err := StartManagedConsumer(tt.args.ctx, tt.args.urlString, tt.args.numberOfWorkers, tt.args.szEngine, tt.args.withInfo, tt.args.visibilitySeconds, tt.args.logLevel, tt.args.jsonOutput); (err != nil) != tt.wantErr {
 				t.Errorf("StartManagedConsumer() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
