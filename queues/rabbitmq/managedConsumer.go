@@ -6,8 +6,8 @@ import (
 	"runtime"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/senzing-garage/g2-sdk-go/g2api"
-	"github.com/senzing-garage/go-common/record"
+	"github.com/senzing-garage/go-helpers/record"
+	"github.com/senzing-garage/sz-sdk-go/sz"
 	"github.com/sourcegraph/conc/pool"
 )
 
@@ -20,7 +20,7 @@ var jobPool chan *RabbitConsumerJob
 // define a structure that will implement the Job interface
 type RabbitConsumerJob struct {
 	delivery  amqp.Delivery
-	engine    *g2api.G2engine
+	engine    *sz.SzEngine
 	id        int
 	usedCount int
 	withInfo  bool
@@ -39,21 +39,13 @@ func (j *RabbitConsumerJob) Execute(ctx context.Context) error {
 	// fmt.Printf("Received a message- msgId: %s, msgCnt: %d, ConsumerTag: %s\n", id, j.delivery.MessageCount, j.delivery.ConsumerTag)
 	record, newRecordErr := record.NewRecord(string(j.delivery.Body))
 	if newRecordErr == nil {
-		loadID := "Load"
+		flags := sz.SZ_WITHOUT_INFO
 		if j.withInfo {
-			var flags int64 = 0
-			_, withInfoErr := (*j.engine).AddRecordWithInfo(ctx, record.DataSource, record.Id, record.Json, loadID, flags)
-			if withInfoErr != nil {
-				return fmt.Errorf("add record error, record id: %s, message id: %s, %v", j.delivery.MessageId, record.Id, withInfoErr)
-			}
-			//TODO:  what do we do with the "withInfo" data here?
-			// fmt.Printf("Record added: %s:%s:%s:%s\n", j.delivery.MessageId, loadID, record.DataSource, record.Id)
-			// fmt.Printf("WithInfo: %s\n", withInfo)
-		} else {
-			addRecordErr := (*j.engine).AddRecord(ctx, record.DataSource, record.Id, record.Json, loadID)
-			if addRecordErr != nil {
-				return fmt.Errorf("add record error, record id: %s, message id: %s, %v", record.Id, j.delivery.MessageId, addRecordErr)
-			}
+			flags = sz.SZ_WITH_INFO
+		}
+		result, err := (*j.engine).AddRecord(ctx, record.DataSource, record.Id, record.Json, flags)
+		if err != nil {
+			return fmt.Errorf("add record error, record id: %s, message id: %s, result: %s, %v", j.delivery.MessageId, record.Id, result, err)
 		}
 
 		// when we successfully process a delivery, acknowledge it.
@@ -86,7 +78,7 @@ func (j *RabbitConsumerJob) OnError(err error) {
 // them to Senzing.
 // - Workers restart when they are killed or die.
 // - respond to standard system signals.
-func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers int, g2engine *g2api.G2engine, withInfo bool, logLevel string, jsonOutput bool) error {
+func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers int, szEngine *sz.SzEngine, withInfo bool, logLevel string, jsonOutput bool) error {
 
 	//default to the max number of OS threads
 	if numberOfWorkers <= 0 {
@@ -106,7 +98,7 @@ func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers
 	jobPool = make(chan *RabbitConsumerJob, numberOfWorkers)
 	for i := 0; i < numberOfWorkers; i++ {
 		jobPool <- &RabbitConsumerJob{
-			engine:    g2engine,
+			engine:    szEngine,
 			id:        i,
 			usedCount: 0,
 			withInfo:  withInfo,

@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 -
 
+## [0.3.0] - 2024-05-09
+
+### Changed in 0.3.0
+
+- Move from `g2` to `sz`
+- Update dependencies
+
 ## [0.2.1] - 2024-01-29
 
 ### Changed in 0.2.1

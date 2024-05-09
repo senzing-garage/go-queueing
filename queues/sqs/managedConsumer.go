@@ -9,8 +9,8 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/roncewind/go-util/util"
-	"github.com/senzing-garage/g2-sdk-go/g2api"
-	"github.com/senzing-garage/go-common/record"
+	"github.com/senzing-garage/go-helpers/record"
+	"github.com/senzing-garage/sz-sdk-go/sz"
 	"github.com/sourcegraph/conc/pool"
 )
 
@@ -23,7 +23,7 @@ var jobPool chan SQSJob
 // define a structure that will implement the Job interface
 type SQSJob struct {
 	client    *Client
-	engine    g2api.G2engine
+	engine    sz.SzEngine
 	id        int
 	message   types.Message
 	startTime time.Time
@@ -43,7 +43,6 @@ func (j *SQSJob) Execute(ctx context.Context, visibilitySeconds int32) error {
 	}()
 	record, newRecordErr := record.NewRecord(string(*j.message.Body))
 	if newRecordErr == nil {
-		loadID := "Load"
 		visibilityContext, visibilityCancel := context.WithCancel(ctx)
 		go func() {
 			ticker := time.NewTicker(time.Duration(visibilitySeconds-1) * time.Second)
@@ -64,25 +63,20 @@ func (j *SQSJob) Execute(ctx context.Context, visibilitySeconds int32) error {
 				}
 			}
 		}()
+		flags := sz.SZ_WITHOUT_INFO
 		if j.withInfo {
-			var flags int64 = 0
-			_, withInfoErr := j.engine.AddRecordWithInfo(ctx, record.DataSource, record.Id, record.Json, loadID, flags)
-			visibilityCancel()
-			if withInfoErr != nil {
-				return fmt.Errorf("add record error, record id: %s, message id: %s, %w", *j.message.MessageId, record.Id, withInfoErr)
-			}
-			//TODO:  what do we do with the "withInfo" data here?
-		} else {
-			addRecordErr := j.engine.AddRecord(ctx, record.DataSource, record.Id, record.Json, loadID)
-			visibilityCancel()
-			if addRecordErr != nil {
-				return fmt.Errorf("add record error, record id: %s, message id: %s, %w", *j.message.MessageId, record.Id, addRecordErr)
-			}
+			flags = sz.SZ_WITH_INFO
 		}
+		result, err := j.engine.AddRecord(ctx, record.DataSource, record.Id, record.Json, flags)
+		visibilityCancel()
+		if err != nil {
+			return fmt.Errorf("add record error, record id: %s, message id: %s, result: %s, %w", *j.message.MessageId, record.Id, result, err)
+		}
+		//TODO:  what do we do with the "withInfo" data here?
 
 		// when we successfully process a message, delete it.
 		//as long as there was no error delete the message from the queue
-		err := j.client.RemoveMessage(ctx, j.message)
+		err = j.client.RemoveMessage(ctx, j.message)
 		if err != nil {
 			return fmt.Errorf("record not removed from queue, record id: %s, message id: %s, %w", *j.message.MessageId, record.Id, err)
 		}
@@ -117,9 +111,9 @@ func (j *SQSJob) OnError(err error) {
 // them to Senzing.
 // - Workers restart when they are killed or die.
 // - respond to standard system signals.
-func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers int, g2engine g2api.G2engine, withInfo bool, visibilitySeconds int32, logLevel string, jsonOutput bool) error {
+func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers int, szEngine sz.SzEngine, withInfo bool, visibilitySeconds int32, logLevel string, jsonOutput bool) error {
 
-	if g2engine == nil {
+	if szEngine == nil {
 		return errors.New("the G2 Engine is not set, unable to start the managed consumer")
 	}
 
@@ -146,7 +140,7 @@ func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers
 	for i := 0; i < numberOfWorkers; i++ {
 		jobPool <- SQSJob{
 			client:    client,
-			engine:    g2engine,
+			engine:    szEngine,
 			id:        i,
 			usedCount: 0,
 			withInfo:  withInfo,
