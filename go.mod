@@ -3,7 +3,7 @@ module github.com/senzing-garage/go-queueing
 go 1.21
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.26.1
+	github.com/aws/aws-sdk-go-v2 v1.26.2
 	github.com/aws/aws-sdk-go-v2/config v1.27.13
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.32.0
 	github.com/rabbitmq/amqp091-go v1.10.0
