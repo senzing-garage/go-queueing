@@ -43,29 +43,29 @@ func (j *RabbitConsumerJob) Execute(ctx context.Context) error {
 		if j.withInfo {
 			flags = sz.SZ_WITH_INFO
 		}
-		result, err := (*j.engine).AddRecord(ctx, record.DataSource, record.Id, record.Json, flags)
+		result, err := (*j.engine).AddRecord(ctx, record.DataSource, record.ID, record.JSON, flags)
 		if err != nil {
-			return fmt.Errorf("add record error, record id: %s, message id: %s, result: %s, %v", j.delivery.MessageId, record.Id, result, err)
+			return fmt.Errorf("add record error, record id: %s, message id: %s, result: %s, %w", j.delivery.MessageId, record.ID, result, err)
 		}
 
 		// when we successfully process a delivery, acknowledge it.
 		return j.delivery.Ack(false)
-	} else {
-		// when we get an invalid delivery, negatively acknowledge and send to the dead letter queue
-		err := j.delivery.Nack(false, false)
-		return fmt.Errorf("invalid deliver from RabbitMQ, message id: %s, %v", j.delivery.MessageId, err)
 	}
+	// when we get an invalid delivery, negatively acknowledge and send to the dead letter queue
+	err := j.delivery.Nack(false, false)
+	return fmt.Errorf("invalid deliver from RabbitMQ, message id: %s, %w", j.delivery.MessageId, err)
 }
 
 // ----------------------------------------------------------------------------
 
 // Whenever Execute() returns an error or panics, this is called
 func (j *RabbitConsumerJob) OnError(err error) {
+	_ = err
 	if j.delivery.Redelivered {
-		//swallow any error, it'll timeout and be redelivered
+		// swallow any error, it'll timeout and be redelivered
 		_ = j.delivery.Nack(false, false)
 	} else {
-		//swallow any error, it'll timeout and be redelivered
+		// swallow any error, it'll timeout and be redelivered
 		_ = j.delivery.Nack(false, true)
 	}
 }
@@ -78,9 +78,9 @@ func (j *RabbitConsumerJob) OnError(err error) {
 // them to Senzing.
 // - Workers restart when they are killed or die.
 // - respond to standard system signals.
-func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers int, szEngine *sz.SzEngine, withInfo bool, logLevel string, jsonOutput bool) error {
+func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers int, szEngine *sz.SzEngine, withInfo bool, logLevel string) error {
 
-	//default to the max number of OS threads
+	// default to the max number of OS threads
 	if numberOfWorkers <= 0 {
 		numberOfWorkers = runtime.GOMAXPROCS(0)
 	}
