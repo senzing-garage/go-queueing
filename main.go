@@ -4,7 +4,7 @@ package main
 // Constants
 // ----------------------------------------------------------------------------
 
-const MessageIdTemplate = "senzing-9999%04d"
+const MessageIDTemplate = "senzing-9999%04d"
 
 // ----------------------------------------------------------------------------
 // Variables

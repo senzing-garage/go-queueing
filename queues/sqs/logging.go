@@ -8,7 +8,7 @@ import (
 )
 
 // logging variables.
-var logger logging.LoggingInterface
+var logger logging.Logging
 var ouputJSON bool
 
 // ----------------------------------------------------------------------------
@@ -16,13 +16,13 @@ var ouputJSON bool
 // ----------------------------------------------------------------------------
 
 // Get the Logger singleton.
-func getLogger() logging.LoggingInterface {
-	var err error = nil
+func getLogger() logging.Logging {
+	var err error
 	if logger == nil {
 		options := []interface{}{
 			&logging.OptionCallerSkip{Value: 4},
 		}
-		logger, err = logging.NewSenzingToolsLogger(ComponentID, IDMessages, options...)
+		logger, err = logging.NewSenzingLogger(ComponentID, IDMessages, options...)
 		if err != nil {
 			panic(err)
 		}
@@ -47,7 +47,8 @@ Input
   - logLevel: The desired log level. TRACE, DEBUG, INFO, WARN, ERROR, FATAL or PANIC.
 */
 func SetLogLevel(ctx context.Context, logLevelName string) error {
-	var err error = nil
+	var err error
+	_ = ctx
 
 	// Verify value of logLevelName.
 

@@ -289,14 +289,13 @@ func (client *Client) progressiveDelay(delay time.Duration) time.Duration {
 // it re-sends messages until a confirm is received.
 // This will block until the server sends a confirm. Errors are
 // only returned if the push action itself fails, see UnsafePush.
-func (client *Client) Push(record queues.Record) error {
-
+func (client *Client) Push(ctx context.Context, record queues.Record) error {
 	if !client.isReady {
 		// wait for client to be ready
 		<-client.notifyReady
 	}
 	for {
-		err := client.UnsafePush(record)
+		err := client.UnsafePush(ctx, record)
 		if err != nil {
 			log(3001, client.resendDelay, record.GetMessageID(), err)
 			select {
@@ -327,14 +326,14 @@ func (client *Client) Push(record queues.Record) error {
 // confirmation. It returns an error if it fails to connect.
 // No guarantees are provided for if the server will
 // receive the message.
-func (client *Client) UnsafePush(record queues.Record) error {
+func (client *Client) UnsafePush(ctx context.Context, record queues.Record) error {
 
 	if !client.isReady {
 		// wait for client to be ready
 		<-client.notifyReady
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	return client.channel.PublishWithContext(

@@ -1,6 +1,7 @@
 package rabbitmq
 
 import (
+	"context"
 	"reflect"
 	"testing"
 	"time"
@@ -9,7 +10,7 @@ import (
 	"github.com/senzing-garage/go-queueing/queues"
 )
 
-func TestNewClient(t *testing.T) {
+func TestNewClient(test *testing.T) {
 	type args struct {
 		urlString string
 	}
@@ -22,20 +23,20 @@ func TestNewClient(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		test.Run(tt.name, func(test *testing.T) {
 			got, err := NewClient(tt.args.urlString)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("NewClient() error = %v, wantErr %v", err, tt.wantErr)
+				test.Errorf("NewClient() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewClient() = %v, want %v", got, tt.want)
+				test.Errorf("NewClient() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestInit(t *testing.T) {
+func TestInit(test *testing.T) {
 	type args struct {
 		client    *Client
 		urlString string
@@ -48,15 +49,15 @@ func TestInit(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		test.Run(tt.name, func(test *testing.T) {
 			if got := Init(tt.args.client, tt.args.urlString); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Init() = %v, want %v", got, tt.want)
+				test.Errorf("Init() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestClient_handleReconnect(t *testing.T) {
+func TestClient_handleReconnect(test *testing.T) {
 	type args struct {
 		addr string
 	}
@@ -68,13 +69,14 @@ func TestClient_handleReconnect(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		test.Run(tt.name, func(test *testing.T) {
+			_ = test
 			tt.client.handleReconnect(tt.args.addr)
 		})
 	}
 }
 
-func TestClient_connect(t *testing.T) {
+func TestClient_connect(test *testing.T) {
 	type args struct {
 		addr string
 	}
@@ -88,20 +90,20 @@ func TestClient_connect(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		test.Run(tt.name, func(test *testing.T) {
 			got, err := tt.client.connect(tt.args.addr)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Client.connect() error = %v, wantErr %v", err, tt.wantErr)
+				test.Errorf("Client.connect() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Client.connect() = %v, want %v", got, tt.want)
+				test.Errorf("Client.connect() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestClient_handleReInit(t *testing.T) {
+func TestClient_handleReInit(test *testing.T) {
 	type args struct {
 		conn *amqp.Connection
 	}
@@ -114,15 +116,15 @@ func TestClient_handleReInit(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		test.Run(tt.name, func(test *testing.T) {
 			if got := tt.client.handleReInit(tt.args.conn); got != tt.want {
-				t.Errorf("Client.handleReInit() = %v, want %v", got, tt.want)
+				test.Errorf("Client.handleReInit() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestClient_init(t *testing.T) {
+func TestClient_init(test *testing.T) {
 	type args struct {
 		conn *amqp.Connection
 	}
@@ -135,15 +137,15 @@ func TestClient_init(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		test.Run(tt.name, func(test *testing.T) {
 			if err := tt.client.init(tt.args.conn); (err != nil) != tt.wantErr {
-				t.Errorf("Client.init() error = %v, wantErr %v", err, tt.wantErr)
+				test.Errorf("Client.init() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestClient_changeConnection(t *testing.T) {
+func TestClient_changeConnection(test *testing.T) {
 	type args struct {
 		connection *amqp.Connection
 	}
@@ -155,13 +157,14 @@ func TestClient_changeConnection(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		test.Run(tt.name, func(test *testing.T) {
+			_ = test
 			tt.client.changeConnection(tt.args.connection)
 		})
 	}
 }
 
-func TestClient_changeChannel(t *testing.T) {
+func TestClient_changeChannel(test *testing.T) {
 	type args struct {
 		channel *amqp.Channel
 	}
@@ -173,13 +176,14 @@ func TestClient_changeChannel(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		test.Run(tt.name, func(test *testing.T) {
+			_ = test
 			tt.client.changeChannel(tt.args.channel)
 		})
 	}
 }
 
-func TestClient_progressiveDelay(t *testing.T) {
+func TestClient_progressiveDelay(test *testing.T) {
 	type args struct {
 		delay time.Duration
 	}
@@ -192,15 +196,16 @@ func TestClient_progressiveDelay(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		test.Run(tt.name, func(test *testing.T) {
 			if got := tt.client.progressiveDelay(tt.args.delay); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Client.progressiveDelay() = %v, want %v", got, tt.want)
+				test.Errorf("Client.progressiveDelay() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestClient_Push(t *testing.T) {
+func TestClient_Push(test *testing.T) {
+	ctx := context.TODO()
 	type args struct {
 		record queues.Record
 	}
@@ -213,15 +218,16 @@ func TestClient_Push(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.client.Push(tt.args.record); (err != nil) != tt.wantErr {
-				t.Errorf("Client.Push() error = %v, wantErr %v", err, tt.wantErr)
+		test.Run(tt.name, func(test *testing.T) {
+			if err := tt.client.Push(ctx, tt.args.record); (err != nil) != tt.wantErr {
+				test.Errorf("Client.Push() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestClient_UnsafePush(t *testing.T) {
+func TestClient_UnsafePush(test *testing.T) {
+	ctx := context.TODO()
 	type args struct {
 		record queues.Record
 	}
@@ -234,15 +240,15 @@ func TestClient_UnsafePush(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.client.UnsafePush(tt.args.record); (err != nil) != tt.wantErr {
-				t.Errorf("Client.UnsafePush() error = %v, wantErr %v", err, tt.wantErr)
+		test.Run(tt.name, func(test *testing.T) {
+			if err := tt.client.UnsafePush(ctx, tt.args.record); (err != nil) != tt.wantErr {
+				test.Errorf("Client.UnsafePush() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestClient_Consume(t *testing.T) {
+func TestClient_Consume(test *testing.T) {
 	type args struct {
 		prefetch int
 	}
@@ -256,20 +262,20 @@ func TestClient_Consume(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		test.Run(tt.name, func(test *testing.T) {
 			got, err := tt.client.Consume(tt.args.prefetch)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Client.Consume() error = %v, wantErr %v", err, tt.wantErr)
+				test.Errorf("Client.Consume() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Client.Consume() = %v, want %v", got, tt.want)
+				test.Errorf("Client.Consume() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestClient_Close(t *testing.T) {
+func TestClient_Close(test *testing.T) {
 	tests := []struct {
 		name    string
 		client  *Client
@@ -278,9 +284,9 @@ func TestClient_Close(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		test.Run(tt.name, func(test *testing.T) {
 			if err := tt.client.Close(); (err != nil) != tt.wantErr {
-				t.Errorf("Client.Close() error = %v, wantErr %v", err, tt.wantErr)
+				test.Errorf("Client.Close() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

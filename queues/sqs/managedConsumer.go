@@ -14,14 +14,14 @@ import (
 	"github.com/sourcegraph/conc/pool"
 )
 
-var jobPool chan SQSJob
+var jobPool chan Job
 
 // ----------------------------------------------------------------------------
 // Job implementation
 // ----------------------------------------------------------------------------
 
 // define a structure that will implement the Job interface
-type SQSJob struct {
+type Job struct {
 	client    *Client
 	engine    sz.SzEngine
 	id        int
@@ -35,7 +35,7 @@ type SQSJob struct {
 
 // Job interface implementation:
 // Execute() is run once for each Job
-func (j *SQSJob) Execute(ctx context.Context, visibilitySeconds int32) error {
+func (j *Job) Execute(ctx context.Context, visibilitySeconds int32) error {
 	// increment the number of times this job struct was used and return to the pool
 	defer func() {
 		j.usedCount++
@@ -49,7 +49,7 @@ func (j *SQSJob) Execute(ctx context.Context, visibilitySeconds int32) error {
 			for {
 				select {
 				case <-ctx.Done():
-					//swallow the error, we're done
+					// swallow the error, we're done
 					_ = j.client.SetMessageVisibility(visibilityContext, j.message, 0)
 					return
 				case <-visibilityContext.Done():
@@ -57,7 +57,7 @@ func (j *SQSJob) Execute(ctx context.Context, visibilitySeconds int32) error {
 				case <-ticker.C:
 					setVisibilityError := j.client.SetMessageVisibility(visibilityContext, j.message, visibilitySeconds)
 					if setVisibilityError != nil {
-						//when there's an error setting visibility, let the message requeue
+						// when there's an error setting visibility, let the message requeue
 						return
 					}
 				}
@@ -67,25 +67,25 @@ func (j *SQSJob) Execute(ctx context.Context, visibilitySeconds int32) error {
 		if j.withInfo {
 			flags = sz.SZ_WITH_INFO
 		}
-		result, err := j.engine.AddRecord(ctx, record.DataSource, record.Id, record.Json, flags)
+		result, err := j.engine.AddRecord(ctx, record.DataSource, record.ID, record.JSON, flags)
 		visibilityCancel()
 		if err != nil {
-			return fmt.Errorf("add record error, record id: %s, message id: %s, result: %s, %w", *j.message.MessageId, record.Id, result, err)
+			return fmt.Errorf("add record error, record id: %s, message id: %s, result: %s, %w", *j.message.MessageId, record.ID, result, err)
 		}
-		//TODO:  what do we do with the "withInfo" data here?
+		// TODO:  what do we do with the "withInfo" data here?
 
 		// when we successfully process a message, delete it.
-		//as long as there was no error delete the message from the queue
+		// as long as there was no error delete the message from the queue
 		err = j.client.RemoveMessage(ctx, j.message)
 		if err != nil {
-			return fmt.Errorf("record not removed from queue, record id: %s, message id: %s, %w", *j.message.MessageId, record.Id, err)
+			return fmt.Errorf("record not removed from queue, record id: %s, message id: %s, %w", *j.message.MessageId, record.ID, err)
 		}
 	} else {
 		// fmt.Println(time.Now(), "ERROR: Invalid delivery from SQS. msg id:", *j.message.MessageId)
 		// when we get an invalid delivery, send to the dead letter queue
 		err := j.client.PushDeadRecord(ctx, j.message)
 		if err != nil {
-			return fmt.Errorf("unable to push message to the dead letter queue, record id: %s, message id: %s, %w", *j.message.MessageId, record.Id, err)
+			return fmt.Errorf("unable to push message to the dead letter queue, record id: %s, message id: %s, %w", *j.message.MessageId, record.ID, err)
 		}
 	}
 	return nil
@@ -94,10 +94,11 @@ func (j *SQSJob) Execute(ctx context.Context, visibilitySeconds int32) error {
 // ----------------------------------------------------------------------------
 
 // Whenever Execute() returns an error or panics, this is called
-func (j *SQSJob) OnError(err error) {
+func (j *Job) OnError(ctx context.Context, err error) {
+	_ = err
 	// fmt.Println("ERROR: Worker error:", err)
 	// fmt.Println("ERROR: Failed to add record. msg id:", *j.message.MessageId)
-	_ = j.client.PushDeadRecord(context.Background(), j.message)
+	_ = j.client.PushDeadRecord(ctx, j.message)
 	// if err != nil {
 	// 	fmt.Println("ERROR: Pushing message to the dead letter queue. msg id:", *j.message.MessageId, "error:", err)
 	// }
@@ -111,13 +112,13 @@ func (j *SQSJob) OnError(err error) {
 // them to Senzing.
 // - Workers restart when they are killed or die.
 // - respond to standard system signals.
-func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers int, szEngine sz.SzEngine, withInfo bool, visibilitySeconds int32, logLevel string, jsonOutput bool) error {
+func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers int, szEngine sz.SzEngine, withInfo bool, visibilitySeconds int32, logLevel string) error {
 
 	if szEngine == nil {
 		return errors.New("the G2 Engine is not set, unable to start the managed consumer")
 	}
 
-	//default to the max number of OS threads
+	// default to the max number of OS threads
 	if numberOfWorkers <= 0 {
 		numberOfWorkers = runtime.GOMAXPROCS(0)
 	}
@@ -128,7 +129,7 @@ func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers
 		log(3003, logLevel, err)
 	}
 
-	client, err := NewClient(ctx, urlString, logLevel, jsonOutput)
+	client, err := NewClient(ctx, urlString)
 	if err != nil {
 		return fmt.Errorf("unable to get a new SQS client, %w", err)
 	}
@@ -136,9 +137,9 @@ func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers
 	log(2012, numberOfWorkers)
 
 	// setup jobs that will be used to process SQS deliveries
-	jobPool = make(chan SQSJob, numberOfWorkers)
+	jobPool = make(chan Job, numberOfWorkers)
 	for i := 0; i < numberOfWorkers; i++ {
-		jobPool <- SQSJob{
+		jobPool <- Job{
 			client:    client,
 			engine:    szEngine,
 			id:        i,
@@ -163,7 +164,7 @@ func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers
 		p.Go(func() {
 			err := job.Execute(ctx, visibilitySeconds)
 			if err != nil {
-				job.OnError(err)
+				job.OnError(ctx, err)
 			}
 		})
 
@@ -179,7 +180,7 @@ func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers
 	// clean up after ourselves
 	close(jobPool)
 	// drain the job pool
-	var job SQSJob
+	var job Job
 	ok := true
 	for ok {
 		job, ok = <-jobPool

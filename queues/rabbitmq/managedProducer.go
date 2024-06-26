@@ -26,13 +26,12 @@ var clientPool chan *Client
 
 // read a record from the record channel and push it to the RabbitMQ queue
 func processRecord(ctx context.Context, record queues.Record, newClientFn func() (*Client, error)) (err error) {
-	_ = ctx
 	client := <-clientPool
-	err = client.Push(record)
+	err = client.Push(ctx, record)
 	if err != nil {
 		// on error, create a new RabbitMQ client
 		err = fmt.Errorf("error pushing record, creating new client %w", err)
-		//put a new client in the pool, dropping the current one
+		// put a new client in the pool, dropping the current one
 		newClient, newClientErr := newClientFn()
 		if newClientErr != nil {
 			err = fmt.Errorf("error creating new client %w %w", newClientErr, err)
@@ -57,9 +56,9 @@ func processRecord(ctx context.Context, record queues.Record, newClientFn func()
 // the given queue.
 // - Workers restart when they are killed or die.
 // - respond to standard system signals.
-func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers int, recordchan <-chan queues.Record, logLevel string, jsonOutput bool) {
+func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers int, recordchan <-chan queues.Record, logLevel string) {
 
-	//default to the max number of OS threads
+	// default to the max number of OS threads
 	if numberOfWorkers <= 0 {
 		numberOfWorkers = runtime.GOMAXPROCS(0)
 	}
@@ -75,7 +74,7 @@ func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers
 	newClientFn := func() (*Client, error) { return NewClient(urlString) }
 
 	// populate an initial client pool
-	go createClients(ctx, numberOfWorkers, newClientFn)
+	go func() { _ = createClients(ctx, numberOfWorkers, newClientFn) }()
 
 	p := pool.New().WithMaxGoroutines(numberOfWorkers)
 	for record := range recordchan {
@@ -99,7 +98,7 @@ func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers
 	for len(clientPool) > 0 {
 		client, ok := <-clientPool
 		if ok && client != nil {
-			//swallow any errors on cleanup
+			// swallow any errors on cleanup
 			_ = client.Close()
 		}
 	}
@@ -112,7 +111,7 @@ func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers
 func createClients(ctx context.Context, numOfClients int, newClientFn func() (*Client, error)) error {
 	_ = ctx
 	countOfClientsCreated := 0
-	var errorStack error = nil
+	var errorStack error
 	for i := 0; i < numOfClients; i++ {
 		client, err := newClientFn()
 		if err != nil {

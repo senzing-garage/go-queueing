@@ -11,12 +11,10 @@ import (
 	"github.com/senzing-garage/go-queueing/queues"
 )
 
-func TestNewClient(t *testing.T) {
+func TestNewClient(test *testing.T) {
 	type args struct {
-		ctx        context.Context
-		urlString  string
-		logLevel   string
-		jsonOutput bool
+		ctx       context.Context
+		urlString string
 	}
 	tests := []struct {
 		name    string
@@ -27,20 +25,20 @@ func TestNewClient(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewClient(tt.args.ctx, tt.args.urlString, tt.args.logLevel, tt.args.jsonOutput)
+		test.Run(tt.name, func(test *testing.T) {
+			got, err := NewClient(tt.args.ctx, tt.args.urlString)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("NewClient() error = %v, wantErr %v", err, tt.wantErr)
+				test.Errorf("NewClient() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewClient() = %v, want %v", got, tt.want)
+				test.Errorf("NewClient() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestClient_getQueueURL(t *testing.T) {
+func TestClient_getQueueURL(test *testing.T) {
 	type args struct {
 		ctx       context.Context
 		urlString string
@@ -54,15 +52,15 @@ func TestClient_getQueueURL(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		test.Run(tt.name, func(test *testing.T) {
 			if err := tt.client.getQueueURL(tt.args.ctx, tt.args.urlString); (err != nil) != tt.wantErr {
-				t.Errorf("Client.getQueueURL() error = %v, wantErr %v", err, tt.wantErr)
+				test.Errorf("Client.getQueueURL() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestClient_getRedrivePolicy(t *testing.T) {
+func TestClient_getRedrivePolicy(test *testing.T) {
 	type args struct {
 		ctx context.Context
 	}
@@ -74,13 +72,14 @@ func TestClient_getRedrivePolicy(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		test.Run(tt.name, func(test *testing.T) {
+			_ = test
 			tt.client.getRedrivePolicy(tt.args.ctx)
 		})
 	}
 }
 
-func TestClient_sendDeadRecord(t *testing.T) {
+func TestClient_sendDeadRecord(test *testing.T) {
 	type args struct {
 		ctx    context.Context
 		record types.Message
@@ -94,15 +93,15 @@ func TestClient_sendDeadRecord(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		test.Run(tt.name, func(test *testing.T) {
 			if err := tt.client.sendDeadRecord(tt.args.ctx, tt.args.record); (err != nil) != tt.wantErr {
-				t.Errorf("Client.sendDeadRecord() error = %v, wantErr %v", err, tt.wantErr)
+				test.Errorf("Client.sendDeadRecord() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestClient_sendRecord(t *testing.T) {
+func TestClient_sendRecord(test *testing.T) {
 	type args struct {
 		ctx    context.Context
 		record queues.Record
@@ -116,15 +115,15 @@ func TestClient_sendRecord(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		test.Run(tt.name, func(test *testing.T) {
 			if err := tt.client.sendRecord(tt.args.ctx, tt.args.record); (err != nil) != tt.wantErr {
-				t.Errorf("Client.sendRecord() error = %v, wantErr %v", err, tt.wantErr)
+				test.Errorf("Client.sendRecord() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestClient_sendRecordBatch(t *testing.T) {
+func TestClient_sendRecordBatch(test *testing.T) {
 	type args struct {
 		ctx     context.Context
 		records []queues.Record
@@ -138,15 +137,15 @@ func TestClient_sendRecordBatch(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		test.Run(tt.name, func(test *testing.T) {
 			if err := tt.client.sendRecordBatch(tt.args.ctx, tt.args.records); (err != nil) != tt.wantErr {
-				t.Errorf("Client.sendRecordBatch() error = %v, wantErr %v", err, tt.wantErr)
+				test.Errorf("Client.sendRecordBatch() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestClient_progressiveDelay(t *testing.T) {
+func TestClient_progressiveDelay(test *testing.T) {
 	type args struct {
 		delay time.Duration
 	}
@@ -159,15 +158,15 @@ func TestClient_progressiveDelay(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		test.Run(tt.name, func(test *testing.T) {
 			if got := tt.client.progressiveDelay(tt.args.delay); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Client.progressiveDelay() = %v, want %v", got, tt.want)
+				test.Errorf("Client.progressiveDelay() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestClient_PushDeadRecord(t *testing.T) {
+func TestClient_PushDeadRecord(test *testing.T) {
 	type args struct {
 		ctx    context.Context
 		record types.Message
@@ -181,15 +180,15 @@ func TestClient_PushDeadRecord(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		test.Run(tt.name, func(test *testing.T) {
 			if err := tt.client.PushDeadRecord(tt.args.ctx, tt.args.record); (err != nil) != tt.wantErr {
-				t.Errorf("Client.PushDeadRecord() error = %v, wantErr %v", err, tt.wantErr)
+				test.Errorf("Client.PushDeadRecord() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestClient_Push(t *testing.T) {
+func TestClient_Push(test *testing.T) {
 	type args struct {
 		ctx    context.Context
 		record queues.Record
@@ -203,15 +202,15 @@ func TestClient_Push(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		test.Run(tt.name, func(test *testing.T) {
 			if err := tt.client.Push(tt.args.ctx, tt.args.record); (err != nil) != tt.wantErr {
-				t.Errorf("Client.Push() error = %v, wantErr %v", err, tt.wantErr)
+				test.Errorf("Client.Push() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestClient_PushBatch(t *testing.T) {
+func TestClient_PushBatch(test *testing.T) {
 	type args struct {
 		ctx        context.Context
 		recordchan <-chan queues.Record
@@ -225,15 +224,15 @@ func TestClient_PushBatch(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		test.Run(tt.name, func(test *testing.T) {
 			if err := tt.client.PushBatch(tt.args.ctx, tt.args.recordchan); (err != nil) != tt.wantErr {
-				t.Errorf("Client.PushBatch() error = %v, wantErr %v", err, tt.wantErr)
+				test.Errorf("Client.PushBatch() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestClient_receiveMessage(t *testing.T) {
+func TestClient_receiveMessage(test *testing.T) {
 	type args struct {
 		ctx               context.Context
 		visibilitySeconds int32
@@ -248,20 +247,20 @@ func TestClient_receiveMessage(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		test.Run(tt.name, func(test *testing.T) {
 			got, err := tt.client.receiveMessage(tt.args.ctx, tt.args.visibilitySeconds)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Client.receiveMessage() error = %v, wantErr %v", err, tt.wantErr)
+				test.Errorf("Client.receiveMessage() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Client.receiveMessage() = %v, want %v", got, tt.want)
+				test.Errorf("Client.receiveMessage() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestClient_Consume(t *testing.T) {
+func TestClient_Consume(test *testing.T) {
 	type args struct {
 		ctx               context.Context
 		visibilitySeconds int32
@@ -276,20 +275,20 @@ func TestClient_Consume(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		test.Run(tt.name, func(test *testing.T) {
 			got, err := tt.client.Consume(tt.args.ctx, tt.args.visibilitySeconds)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Client.Consume() error = %v, wantErr %v", err, tt.wantErr)
+				test.Errorf("Client.Consume() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Client.Consume() = %v, want %v", got, tt.want)
+				test.Errorf("Client.Consume() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestClient_RemoveMessage(t *testing.T) {
+func TestClient_RemoveMessage(test *testing.T) {
 	type args struct {
 		ctx context.Context
 		msg types.Message
@@ -303,15 +302,15 @@ func TestClient_RemoveMessage(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		test.Run(tt.name, func(test *testing.T) {
 			if err := tt.client.RemoveMessage(tt.args.ctx, tt.args.msg); (err != nil) != tt.wantErr {
-				t.Errorf("Client.RemoveMessage() error = %v, wantErr %v", err, tt.wantErr)
+				test.Errorf("Client.RemoveMessage() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestClient_SetMessageVisibility(t *testing.T) {
+func TestClient_SetMessageVisibility(test *testing.T) {
 	type args struct {
 		ctx     context.Context
 		msg     types.Message
@@ -326,15 +325,15 @@ func TestClient_SetMessageVisibility(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		test.Run(tt.name, func(test *testing.T) {
 			if err := tt.client.SetMessageVisibility(tt.args.ctx, tt.args.msg, tt.args.seconds); (err != nil) != tt.wantErr {
-				t.Errorf("Client.SetMessageVisibility() error = %v, wantErr %v", err, tt.wantErr)
+				test.Errorf("Client.SetMessageVisibility() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestClient_Close(t *testing.T) {
+func TestClient_Close(test *testing.T) {
 	tests := []struct {
 		name    string
 		client  *Client
@@ -343,9 +342,9 @@ func TestClient_Close(t *testing.T) {
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		test.Run(tt.name, func(test *testing.T) {
 			if err := tt.client.Close(); (err != nil) != tt.wantErr {
-				t.Errorf("Client.Close() error = %v, wantErr %v", err, tt.wantErr)
+				test.Errorf("Client.Close() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

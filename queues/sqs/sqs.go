@@ -43,7 +43,7 @@ type Client struct {
 // ----------------------------------------------------------------------------
 
 // New creates a single SQS client
-func NewClient(ctx context.Context, urlString string, logLevel string, jsonOutput bool) (*Client, error) {
+func NewClient(ctx context.Context, urlString string) (*Client, error) {
 	client := Client{
 		MaxDelay:       10 * time.Minute,
 		ReconnectDelay: 2 * time.Second,
@@ -222,7 +222,7 @@ func (client *Client) sendRecordBatch(ctx context.Context, records []queues.Reco
 						StringValue: aws.String(record.GetMessageID()),
 					},
 				},
-				MessageBody: aws.String(record.GetMessage()), //?  aws.String(string(utils.Base64Encode([]byte(body)))),
+				MessageBody: aws.String(record.GetMessage()), // aws.String(string(utils.Base64Encode([]byte(body)))),
 			}
 			i++
 		}
@@ -292,17 +292,16 @@ func (client *Client) Push(ctx context.Context, record queues.Record) error {
 			log(3001, client.resendDelay, record.GetMessageID(), err)
 			select {
 			case <-ctx.Done():
-				return fmt.Errorf("context cancelled: %v", ctx.Err())
+				return fmt.Errorf("context cancelled: %w", ctx.Err())
 			case <-time.After(client.resendDelay):
-				//:  resend forever???
+				// TODO:  resend forever???
 				client.resendDelay = client.progressiveDelay(client.resendDelay)
 			}
 			continue
-		} else {
-			//reset the resend delay
-			client.resendDelay = client.ResendDelay
-			return nil
 		}
+		// reset the resend delay
+		client.resendDelay = client.ResendDelay
+		return nil
 	}
 }
 
@@ -330,7 +329,7 @@ func (client *Client) PushBatch(ctx context.Context, recordchan <-chan queues.Re
 			records = make([]queues.Record, 10)
 		}
 	}
-	//handle a last partial batch
+	// handle a last partial batch
 	if i > 0 {
 		err := client.sendRecordBatch(ctx, records)
 		if err != nil {
@@ -358,7 +357,7 @@ func (client *Client) receiveMessage(ctx context.Context, visibilitySeconds int3
 		log(4013, err)
 		return nil, fmt.Errorf("error receiving records %w", err)
 	}
-	if msg.Messages == nil || len(msg.Messages) <= 0 {
+	if msg.Messages == nil || len(msg.Messages) == 0 {
 		log(4014)
 		return nil, fmt.Errorf("no messages")
 	}
@@ -430,7 +429,7 @@ func (client *Client) SetMessageVisibility(ctx context.Context, msg types.Messag
 		seconds = 0
 	}
 
-	if seconds > 12*60*60 { //12 hour max
+	if seconds > 12*60*60 { // 12 hour max
 		seconds = 12 * 60 * 60
 	}
 
