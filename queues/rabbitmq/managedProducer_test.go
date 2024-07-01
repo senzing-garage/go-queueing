@@ -36,6 +36,7 @@ func TestStartManagedProducer(test *testing.T) {
 		numberOfWorkers int
 		recordchan      <-chan queues.Record
 		logLevel        string
+		jsonOutput      bool
 	}
 	tests := []struct {
 		name string
@@ -46,7 +47,7 @@ func TestStartManagedProducer(test *testing.T) {
 	for _, tt := range tests {
 		test.Run(tt.name, func(test *testing.T) {
 			_ = test
-			StartManagedProducer(tt.args.ctx, tt.args.urlString, tt.args.numberOfWorkers, tt.args.recordchan, tt.args.logLevel)
+			StartManagedProducer(tt.args.ctx, tt.args.urlString, tt.args.numberOfWorkers, tt.args.recordchan, tt.args.logLevel, tt.args.jsonOutput)
 		})
 	}
 }

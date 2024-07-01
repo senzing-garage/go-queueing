@@ -43,7 +43,9 @@ type Client struct {
 // ----------------------------------------------------------------------------
 
 // New creates a single SQS client
-func NewClient(ctx context.Context, urlString string) (*Client, error) {
+func NewClient(ctx context.Context, urlString string, logLevel string, jsonOutput bool) (*Client, error) {
+	_ = logLevel
+	_ = jsonOutput
 	client := Client{
 		MaxDelay:       10 * time.Minute,
 		ReconnectDelay: 2 * time.Second,

@@ -112,7 +112,7 @@ func (j *Job) OnError(ctx context.Context, err error) {
 // them to Senzing.
 // - Workers restart when they are killed or die.
 // - respond to standard system signals.
-func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers int, szEngine sz.SzEngine, withInfo bool, visibilitySeconds int32, logLevel string) error {
+func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers int, szEngine sz.SzEngine, withInfo bool, visibilitySeconds int32, logLevel string, jsonOutput bool) error {
 
 	if szEngine == nil {
 		return errors.New("the G2 Engine is not set, unable to start the managed consumer")
@@ -129,7 +129,7 @@ func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers
 		log(3003, logLevel, err)
 	}
 
-	client, err := NewClient(ctx, urlString)
+	client, err := NewClient(ctx, urlString, logLevel, jsonOutput)
 	if err != nil {
 		return fmt.Errorf("unable to get a new SQS client, %w", err)
 	}

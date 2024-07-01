@@ -78,7 +78,8 @@ func (j *RabbitConsumerJob) OnError(err error) {
 // them to Senzing.
 // - Workers restart when they are killed or die.
 // - respond to standard system signals.
-func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers int, szEngine *sz.SzEngine, withInfo bool, logLevel string) error {
+func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers int, szEngine *sz.SzEngine, withInfo bool, logLevel string, jsonOutput bool) error {
+	_ = jsonOutput
 
 	// default to the max number of OS threads
 	if numberOfWorkers <= 0 {

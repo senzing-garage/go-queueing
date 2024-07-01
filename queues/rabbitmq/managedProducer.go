@@ -56,7 +56,8 @@ func processRecord(ctx context.Context, record queues.Record, newClientFn func()
 // the given queue.
 // - Workers restart when they are killed or die.
 // - respond to standard system signals.
-func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers int, recordchan <-chan queues.Record, logLevel string) {
+func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers int, recordchan <-chan queues.Record, logLevel string, jsonOutput bool) {
+	_ = jsonOutput
 
 	// default to the max number of OS threads
 	if numberOfWorkers <= 0 {
