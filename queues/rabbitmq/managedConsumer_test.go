@@ -55,6 +55,7 @@ func TestStartManagedConsumer(test *testing.T) {
 		szEngine        *sz.SzEngine
 		withInfo        bool
 		logLevel        string
+		jsonOutput      bool
 	}
 	tests := []struct {
 		name    string
@@ -65,7 +66,7 @@ func TestStartManagedConsumer(test *testing.T) {
 	}
 	for _, tt := range tests {
 		test.Run(tt.name, func(test *testing.T) {
-			if err := StartManagedConsumer(tt.args.ctx, tt.args.urlString, tt.args.numberOfWorkers, tt.args.szEngine, tt.args.withInfo, tt.args.logLevel); (err != nil) != tt.wantErr {
+			if err := StartManagedConsumer(tt.args.ctx, tt.args.urlString, tt.args.numberOfWorkers, tt.args.szEngine, tt.args.withInfo, tt.args.logLevel, tt.args.jsonOutput); (err != nil) != tt.wantErr {
 				test.Errorf("StartManagedConsumer() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

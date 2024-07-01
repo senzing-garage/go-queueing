@@ -13,8 +13,10 @@ import (
 
 func TestNewClient(test *testing.T) {
 	type args struct {
-		ctx       context.Context
-		urlString string
+		ctx        context.Context
+		urlString  string
+		logLevel   string
+		jsonOutput bool
 	}
 	tests := []struct {
 		name    string
@@ -26,7 +28,7 @@ func TestNewClient(test *testing.T) {
 	}
 	for _, tt := range tests {
 		test.Run(tt.name, func(test *testing.T) {
-			got, err := NewClient(tt.args.ctx, tt.args.urlString)
+			got, err := NewClient(tt.args.ctx, tt.args.urlString, tt.args.logLevel, tt.args.jsonOutput)
 			if (err != nil) != tt.wantErr {
 				test.Errorf("NewClient() error = %v, wantErr %v", err, tt.wantErr)
 				return
