@@ -26,7 +26,6 @@ The Senzing `go-queueing` packages provide adapters for RabbitMQ, and SQS.
 [![Go Report Card](https://goreportcard.com/badge/github.com/senzing-garage/go-queueing)](https://goreportcard.com/report/github.com/senzing-garage/go-queueing)
 [![License](https://img.shields.io/badge/License-Apache2-brightgreen.svg)](https://github.com/senzing-garage/go-queueing/blob/main/LICENSE)
 
-[![gosec.yaml](https://github.com/senzing-garage/go-queueing/actions/workflows/gosec.yaml/badge.svg)](https://github.com/senzing-garage/go-queueing/actions/workflows/gosec.yaml)
 [![go-test-linux.yaml](https://github.com/senzing-garage/go-queueing/actions/workflows/go-test-linux.yaml/badge.svg)](https://github.com/senzing-garage/go-queueing/actions/workflows/go-test-linux.yaml)
 [![go-test-darwin.yaml](https://github.com/senzing-garage/go-queueing/actions/workflows/go-test-darwin.yaml/badge.svg)](https://github.com/senzing-garage/go-queueing/actions/workflows/go-test-darwin.yaml)
 [![go-test-windows.yaml](https://github.com/senzing-garage/go-queueing/actions/workflows/go-test-windows.yaml/badge.svg)](https://github.com/senzing-garage/go-queueing/actions/workflows/go-test-windows.yaml)

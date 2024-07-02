@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/roncewind/go-util/util"
 	"github.com/senzing-garage/go-helpers/record"
-	"github.com/senzing-garage/sz-sdk-go/sz"
+	"github.com/senzing-garage/sz-sdk-go/senzing"
 	"github.com/sourcegraph/conc/pool"
 )
 
@@ -23,7 +23,7 @@ var jobPool chan Job
 // define a structure that will implement the Job interface
 type Job struct {
 	client    *Client
-	engine    sz.SzEngine
+	engine    senzing.SzEngine
 	id        int
 	message   types.Message
 	startTime time.Time
@@ -63,9 +63,9 @@ func (j *Job) Execute(ctx context.Context, visibilitySeconds int32) error {
 				}
 			}
 		}()
-		flags := sz.SZ_WITHOUT_INFO
+		flags := senzing.SzWithoutInfo
 		if j.withInfo {
-			flags = sz.SZ_WITH_INFO
+			flags = senzing.SzWithInfo
 		}
 		result, err := j.engine.AddRecord(ctx, record.DataSource, record.ID, record.JSON, flags)
 		visibilityCancel()
@@ -112,7 +112,7 @@ func (j *Job) OnError(ctx context.Context, err error) {
 // them to Senzing.
 // - Workers restart when they are killed or die.
 // - respond to standard system signals.
-func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers int, szEngine sz.SzEngine, withInfo bool, visibilitySeconds int32, logLevel string, jsonOutput bool) error {
+func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers int, szEngine senzing.SzEngine, withInfo bool, visibilitySeconds int32, logLevel string, jsonOutput bool) error {
 
 	if szEngine == nil {
 		return errors.New("the G2 Engine is not set, unable to start the managed consumer")

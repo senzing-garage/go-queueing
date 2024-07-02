@@ -7,7 +7,7 @@ import (
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/senzing-garage/go-helpers/record"
-	"github.com/senzing-garage/sz-sdk-go/sz"
+	"github.com/senzing-garage/sz-sdk-go/senzing"
 	"github.com/sourcegraph/conc/pool"
 )
 
@@ -20,7 +20,7 @@ var jobPool chan *RabbitConsumerJob
 // define a structure that will implement the Job interface
 type RabbitConsumerJob struct {
 	delivery  amqp.Delivery
-	engine    *sz.SzEngine
+	engine    *senzing.SzEngine
 	id        int
 	usedCount int
 	withInfo  bool
@@ -39,9 +39,9 @@ func (j *RabbitConsumerJob) Execute(ctx context.Context) error {
 	// fmt.Printf("Received a message- msgId: %s, msgCnt: %d, ConsumerTag: %s\n", id, j.delivery.MessageCount, j.delivery.ConsumerTag)
 	record, newRecordErr := record.NewRecord(string(j.delivery.Body))
 	if newRecordErr == nil {
-		flags := sz.SZ_WITHOUT_INFO
+		flags := senzing.SzWithoutInfo
 		if j.withInfo {
-			flags = sz.SZ_WITH_INFO
+			flags = senzing.SzWithInfo
 		}
 		result, err := (*j.engine).AddRecord(ctx, record.DataSource, record.ID, record.JSON, flags)
 		if err != nil {
@@ -78,7 +78,7 @@ func (j *RabbitConsumerJob) OnError(err error) {
 // them to Senzing.
 // - Workers restart when they are killed or die.
 // - respond to standard system signals.
-func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers int, szEngine *sz.SzEngine, withInfo bool, logLevel string, jsonOutput bool) error {
+func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers int, szEngine *senzing.SzEngine, withInfo bool, logLevel string, jsonOutput bool) error {
 	_ = jsonOutput
 
 	// default to the max number of OS threads

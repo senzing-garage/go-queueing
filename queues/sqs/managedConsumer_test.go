@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/senzing-garage/sz-sdk-go/sz"
+	"github.com/senzing-garage/sz-sdk-go/senzing"
 )
 
 func TestSQSJob_Execute(test *testing.T) {
@@ -55,7 +55,7 @@ func TestStartManagedConsumer(test *testing.T) {
 		ctx               context.Context
 		urlString         string
 		numberOfWorkers   int
-		szEngine          sz.SzEngine
+		szEngine          senzing.SzEngine
 		withInfo          bool
 		visibilitySeconds int32
 		logLevel          string
