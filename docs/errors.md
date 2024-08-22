@@ -1,1 +1,1 @@
-## Errors
+# go-queueing errors

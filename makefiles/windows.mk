@@ -16,22 +16,30 @@ build-osarch-specific: windows/amd64
 
 .PHONY: clean-osarch-specific
 clean-osarch-specific:
-	del /F /S /Q $(GOPATH)/bin/$(PROGRAM_NAME)
-	del /F /S /Q $(MAKEFILE_DIRECTORY)/coverage.html
-	del /F /S /Q $(MAKEFILE_DIRECTORY)/coverage.out
-	del /F /S /Q $(TARGET_DIRECTORY)
+	@del /F /S /Q $(GOPATH)/bin/$(PROGRAM_NAME)
+	@del /F /S /Q $(MAKEFILE_DIRECTORY)/coverage.html
+	@del /F /S /Q $(MAKEFILE_DIRECTORY)/coverage.out
+	@del /F /S /Q $(MAKEFILE_DIRECTORY)/cover.out
+	@del /F /S /Q $(TARGET_DIRECTORY)
+	@taskkill /f /t/im godoc
 
 
 .PHONY: coverage-osarch-specific
 coverage-osarch-specific:
 	@go test -v -coverprofile=coverage.out -p 1 ./...
 	@go tool cover -html="coverage.out" -o coverage.html
-	@xdg-open file://$(MAKEFILE_DIRECTORY)/coverage.html
+	@explorer file://$(MAKEFILE_DIRECTORY)/coverage.html
+
+
+.PHONY: documentation-osarch-specific
+documentation-osarch-specific:
+	@start /b godoc
+	@explorer http://localhost:6060
 
 
 .PHONY: hello-world-osarch-specific
 hello-world-osarch-specific:
-	@echo "Hello World, from windows."
+	$(info Hello World, from windows.)
 
 
 .PHONY: run-osarch-specific
@@ -46,7 +54,7 @@ setup-osarch-specific:
 
 .PHONY: test-osarch-specific
 test-osarch-specific:
-	@go test -v -p 1 ./...
+	@go test -json -v -p 1 ./... 2>&1 | tee /tmp/gotest.log | gotestfmt
 
 # -----------------------------------------------------------------------------
 # Makefile targets supported only by this platform.
@@ -54,4 +62,4 @@ test-osarch-specific:
 
 .PHONY: only-windows
 only-windows:
-	@echo "Only windows has this Makefile target."
+	$(info Only windows has this Makefile target.)

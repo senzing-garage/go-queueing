@@ -115,7 +115,7 @@ func (j *Job) OnError(ctx context.Context, err error) {
 func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers int, szEngine senzing.SzEngine, withInfo bool, visibilitySeconds int32, logLevel string, jsonOutput bool) error {
 
 	if szEngine == nil {
-		return errors.New("the G2 Engine is not set, unable to start the managed consumer")
+		return errors.New("the Sz Engine is not set, unable to start the managed consumer")
 	}
 
 	// default to the max number of OS threads

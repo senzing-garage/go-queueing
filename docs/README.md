@@ -1,5 +1,8 @@
 # go-queueing
 
-Placeholder for [GitHub pages](https://pages.github.com/).
+Placeholder for [GitHub pages].
 
-See [https://senzing.github.io/go-queueing](https://senzing.github.io/go-queueing).
+See [GitHub page].
+
+[GitHub page]: https://garage.senzing.com/go-queueing
+[GitHub pages]: https://pages.github.com/
