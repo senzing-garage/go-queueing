@@ -359,7 +359,7 @@ func (client *Client) receiveMessage(ctx context.Context, visibilitySeconds int3
 		log(4013, err)
 		return nil, fmt.Errorf("error receiving records %w", err)
 	}
-	if msg.Messages == nil || len(msg.Messages) == 0 {
+	if len(msg.Messages) == 0 {
 		log(4014)
 		return nil, fmt.Errorf("no messages")
 	}

@@ -14,7 +14,7 @@ const Prefix = "rabbitmq: "
 // Variables
 // ----------------------------------------------------------------------------
 
-// Message templates for g2config implementations.
+// Message templates for Szconfig implementations.
 var IDMessages = map[int]string{
 	// Level 	Range 		Use 							Comments
 	// TRACE 	0000-0999 	Entry/Exit tracing 				May contain sensitive data.
