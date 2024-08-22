@@ -34,12 +34,9 @@ The Senzing `go-queueing` packages provide adapters for RabbitMQ, and SQS.
 1. [Errors]
 1. [Examples]
 1. [Package reference]
-1. Related artifacts:
-    1. [DockerHub]
 
 [API documentation]: https://pkg.go.dev/github.com/senzing-garage/go-queueing
 [Development]: docs/development.md
-[DockerHub]: https://hub.docker.com/r/senzing/go-queueing
 [Errors]: docs/errors.md
 [Examples]: docs/examples.md
 [Go Reference Badge]: https://pkg.go.dev/badge/github.com/senzing-garage/go-queueing.svg

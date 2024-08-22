@@ -1,4 +1,4 @@
 /*
-Module go-queueing helps with communicating with queueing services like rabbitmq.
+Package queues contains queue-specific implementations.
 */
 package queues

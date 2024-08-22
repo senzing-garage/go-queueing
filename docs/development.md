@@ -13,19 +13,7 @@ These are "one-time tasks" which may already have been completed.
 1. The following software programs need to be installed:
     1. [git]
     1. [make]
-    1. [docker]
     1. [go]
-
-## Install Senzing C library
-
-Since the Senzing library is a prerequisite, it must be installed first.
-
-1. Verify Senzing C shared objects, configuration, and SDK header files are installed.
-    1. `/opt/senzing/er/lib`
-    1. `/opt/senzing/er/sdk/c`
-    1. `/etc/opt/senzing`
-
-1. If not installed, see [How to Install Senzing for Go Development].
 
 ## Install Git repository
 
@@ -279,12 +267,10 @@ Example:
 ## References
 
 [clone-repository]: https://github.com/senzing-garage/knowledge-base/blob/main/HOWTO/clone-repository.md
-[docker]: https://github.com/senzing-garage/knowledge-base/blob/main/WHATIS/docker.md
 [git]: https://github.com/senzing-garage/knowledge-base/blob/main/WHATIS/git.md
 [Go Reference Badge]: https://pkg.go.dev/badge/github.com/senzing-garage/go-queueing.svg
 [Go Reference]: https://pkg.go.dev/github.com/senzing-garage/go-queueing
 [go]: https://github.com/senzing-garage/knowledge-base/blob/main/WHATIS/go.md
-[How to Install Senzing for Go Development]: https://github.com/senzing-garage/knowledge-base/blob/main/HOWTO/install-senzing-for-go-development.md
 [localhost:6060]: http://localhost:6060/pkg/github.com/senzing-garage/go-queueing/
 [make]: https://github.com/senzing-garage/knowledge-base/blob/main/WHATIS/make.md
 [testcoverage.yaml]: ../.github/coverage/testcoverage.yaml
