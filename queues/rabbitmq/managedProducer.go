@@ -79,7 +79,6 @@ func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers
 
 	p := pool.New().WithMaxGoroutines(numberOfWorkers)
 	for record := range recordchan {
-		record := record
 		p.Go(func() {
 			err := processRecord(ctx, record, newClientFn)
 			if err != nil {
