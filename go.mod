@@ -1,6 +1,8 @@
 module github.com/senzing-garage/go-queueing
 
-go 1.21
+go 1.22.0
+
+toolchain go1.23.1
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.30.5
@@ -28,5 +30,5 @@ require (
 	github.com/aws/smithy-go v1.20.4 // indirect
 	github.com/senzing-garage/go-messaging v1.5.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/exp v0.0.0-20240904232852-e7e105dedf7e // indirect
+	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0 // indirect
 )
