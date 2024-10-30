@@ -12,7 +12,7 @@ require (
 	github.com/roncewind/go-util v0.0.5
 	github.com/senzing-garage/go-helpers v0.6.1
 	github.com/senzing-garage/go-logging v1.5.1
-	github.com/senzing-garage/sz-sdk-go v0.14.2
+	github.com/senzing-garage/sz-sdk-go v0.14.3
 	github.com/sourcegraph/conc v0.3.0
 )
 
@@ -30,5 +30,5 @@ require (
 	github.com/aws/smithy-go v1.22.0 // indirect
 	github.com/senzing-garage/go-messaging v1.5.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0 // indirect
+	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c // indirect
 )
