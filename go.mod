@@ -1,7 +1,6 @@
 module github.com/senzing-garage/go-queueing
 
 go 1.22.0
-
 toolchain go1.23.1
 
 require (
@@ -10,7 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.37.15
 	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/roncewind/go-util v0.0.5
-	github.com/senzing-garage/go-helpers v0.6.5
+	github.com/senzing-garage/go-helpers v0.6.6
 	github.com/senzing-garage/go-logging v1.5.1
 	github.com/senzing-garage/sz-sdk-go v0.14.5
 	github.com/sourcegraph/conc v0.3.0
@@ -30,5 +29,5 @@ require (
 	github.com/aws/smithy-go v1.22.2 // indirect
 	github.com/senzing-garage/go-messaging v1.5.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/exp v0.0.0-20250128182459-e0ece0dbea4c // indirect
+	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa // indirect
 )
