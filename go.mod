@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.38.5
 	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/roncewind/go-util v0.0.5
-	github.com/senzing-garage/go-helpers v0.6.10
+	github.com/senzing-garage/go-helpers v0.6.11
 	github.com/senzing-garage/go-logging v1.5.2
 	github.com/senzing-garage/sz-sdk-go v0.15.2
 	github.com/sourcegraph/conc v0.3.0
