@@ -9,10 +9,11 @@ import (
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/senzing-garage/go-logging/logging"
 	"github.com/senzing-garage/go-queueing/queues"
 )
 
-type Client struct {
+type ClientRabbitMQ struct {
 	ExchangeName string
 	QueueName    string
 	// desired / default delay durations
@@ -25,6 +26,7 @@ type Client struct {
 	channel         *amqp.Channel
 	done            chan bool
 	isReady         bool
+	logger          logging.Logging
 	notifyConnClose chan *amqp.Error
 	notifyChanClose chan *amqp.Error
 	notifyConfirm   chan amqp.Confirmation
@@ -36,48 +38,71 @@ type Client struct {
 }
 
 // ----------------------------------------------------------------------------
+// Public methods
+// ----------------------------------------------------------------------------
 
-// New creates a single RabbitMQ client that will automatically
-// attempt to connect to the server.  Reconnection delays are set to defaults.
-func NewClient(urlString string) (*Client, error) {
+// Close will cleanly shutdown the channel and connection.
+func (client *ClientRabbitMQ) Close() error {
+	if !client.isReady {
+		return fmt.Errorf("already closed: not connected to the server")
+	}
+	close(client.done)
+	close(client.notifyReady)
 
-	u, err := url.Parse(urlString)
+	//FIXME:  connection.Close() closes underlying channels so do we need this?
+	err := client.channel.Close()
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse RabbitMQ URL string %w", err)
+		client.log(4004, err)
 	}
 
-	queryMap, _ := url.ParseQuery(u.RawQuery)
-	if len(queryMap["exchange"]) < 1 || len(queryMap["queue-name"]) < 1 {
-		return nil, fmt.Errorf("please define an exchange and queue-name as query parameters")
-	}
-	routingKey := queryMap["queue-name"][0]
-	if len(queryMap["routing-key"]) > 0 {
-		routingKey = queryMap["routing-key"][0]
+	err = client.connection.Close()
+	if err != nil {
+		client.log(4005, err)
 	}
 
-	client := Client{
-		ExchangeName:   queryMap["exchange"][0],
-		QueueName:      queryMap["queue-name"][0],
-		ReconnectDelay: 2 * time.Second,
-		ReInitDelay:    2 * time.Second,
-		ResendDelay:    1 * time.Second,
-		RoutingKey:     routingKey,
-
-		done:        make(chan bool),
-		notifyReady: make(chan interface{}),
-	}
-	client.reconnectDelay = client.ReconnectDelay
-	client.reInitDelay = client.ReInitDelay
-	client.resendDelay = client.ResendDelay
-	go client.handleReconnect(urlString)
-	return &client, nil
+	client.isReady = false
+	return nil
 }
 
-// ----------------------------------------------------------------------------
+// Consume will continuously put queue items on the channel.
+// It is required to call delivery.Ack when it has been
+// successfully processed, or delivery.Nack when it fails.
+// Ignoring this will cause data to build up on the server.
+//   - prefetch is the number of deliveries for the rabbit mq client to prefetch
+//     from the server.  a good rule of thumb is to prefetch as many as there
+//     will be clients processing the deliveries.
+func (client *ClientRabbitMQ) Consume(prefetch int) (<-chan amqp.Delivery, error) {
+	if !client.isReady {
+		// wait for client to be ready
+		<-client.notifyReady
+	}
+
+	if prefetch < 0 {
+		prefetch = 1
+	}
+
+	if err := client.channel.Qos(
+		prefetch, // prefetch count (should set to the number of load goroutines?)
+		0,        // prefetch size
+		false,    // global
+	); err != nil {
+		return nil, fmt.Errorf("unable to set the RabbitMQ channel quality of service %w", err)
+	}
+
+	return client.channel.Consume(
+		client.QueueName, // queue
+		"",               // consumer uid, blank auto-generates a uid
+		false,            // auto-ack
+		false,            // exclusive
+		false,            // no-local (not supported by rabbitmq)
+		false,            // no-wait, false seems safest
+		nil,              // args
+	)
+}
 
 // Init initializes a single RabbitMQ client that will automatically
 // attempt to connect to the server.
-func Init(client *Client, urlString string) *Client {
+func Init(client *ClientRabbitMQ, urlString string) *ClientRabbitMQ {
 
 	// set up defaults if none provided
 	if client.ReconnectDelay <= 0 {
@@ -101,19 +126,160 @@ func Init(client *Client, urlString string) *Client {
 	return client
 }
 
+// New creates a single RabbitMQ client that will automatically
+// attempt to connect to the server.  Reconnection delays are set to defaults.
+func NewClient(urlString string) (*ClientRabbitMQ, error) {
+
+	u, err := url.Parse(urlString)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse RabbitMQ URL string %w", err)
+	}
+
+	queryMap, _ := url.ParseQuery(u.RawQuery)
+	if len(queryMap["exchange"]) < 1 || len(queryMap["queue-name"]) < 1 {
+		return nil, fmt.Errorf("please define an exchange and queue-name as query parameters")
+	}
+	routingKey := queryMap["queue-name"][0]
+	if len(queryMap["routing-key"]) > 0 {
+		routingKey = queryMap["routing-key"][0]
+	}
+
+	client := ClientRabbitMQ{
+		ExchangeName:   queryMap["exchange"][0],
+		QueueName:      queryMap["queue-name"][0],
+		ReconnectDelay: 2 * time.Second,
+		ReInitDelay:    2 * time.Second,
+		ResendDelay:    1 * time.Second,
+		RoutingKey:     routingKey,
+
+		done:        make(chan bool),
+		notifyReady: make(chan interface{}),
+	}
+	client.reconnectDelay = client.ReconnectDelay
+	client.reInitDelay = client.ReInitDelay
+	client.resendDelay = client.ResendDelay
+	go client.handleReconnect(urlString)
+	return &client, nil
+}
+
+// Push will push data onto the queue and wait for a confirm.
+// If no confirm is received by the resendTimeout,
+// it re-sends messages until a confirm is received.
+// This will block until the server sends a confirm. Errors are
+// only returned if the push action itself fails, see UnsafePush.
+func (client *ClientRabbitMQ) Push(ctx context.Context, record queues.Record) error {
+	if !client.isReady {
+		// wait for client to be ready
+		<-client.notifyReady
+	}
+	for {
+		err := client.UnsafePush(ctx, record)
+		if err != nil {
+			client.log(3001, client.resendDelay, record.GetMessageID(), err)
+			select {
+			case <-client.done:
+				return fmt.Errorf("client is shutting down")
+			case <-time.After(client.resendDelay):
+				client.resendDelay = client.progressiveDelay(client.resendDelay)
+			}
+			continue
+		}
+		select {
+		case confirm := <-client.notifyConfirm:
+			if confirm.Ack {
+				// reset resend delay
+				client.resendDelay = client.ResendDelay
+				return nil
+			}
+		case <-time.After(client.resendDelay):
+			client.resendDelay = client.progressiveDelay(client.resendDelay)
+		}
+		client.log(3002, client.resendDelay, record.GetMessageID())
+	}
+}
+
+// UnsafePush will push to the queue without checking for
+// confirmation. It returns an error if it fails to connect.
+// No guarantees are provided for if the server will
+// receive the message.
+func (client *ClientRabbitMQ) UnsafePush(ctx context.Context, record queues.Record) error {
+
+	if !client.isReady {
+		// wait for client to be ready
+		<-client.notifyReady
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	return client.channel.PublishWithContext(
+		ctx,                 // context
+		client.ExchangeName, // exchange name
+		client.RoutingKey,   // routing key
+		false,               // mandatory
+		false,               // immediate
+		amqp.Publishing{ // message
+			Body:         []byte(record.GetMessage()),
+			ContentType:  "text/plain",
+			DeliveryMode: amqp.Persistent,
+			MessageId:    record.GetMessageID(),
+		},
+	)
+}
+
 // ----------------------------------------------------------------------------
+// Private methods
+// ----------------------------------------------------------------------------
+
+// changeChannel takes a new channel to the queue,
+// and updates the channel listeners to reflect this.
+func (client *ClientRabbitMQ) changeChannel(channel *amqp.Channel) {
+	client.channel = channel
+	client.notifyChanClose = make(chan *amqp.Error, 1)
+	client.notifyConfirm = make(chan amqp.Confirmation, 1)
+	client.channel.NotifyClose(client.notifyChanClose)
+	client.channel.NotifyPublish(client.notifyConfirm)
+}
+
+// changeConnection takes a new connection to the queue,
+// and updates the close listener to reflect this.
+func (client *ClientRabbitMQ) changeConnection(connection *amqp.Connection) {
+	client.connection = connection
+	client.notifyConnClose = make(chan *amqp.Error, 1)
+	client.connection.NotifyClose(client.notifyConnClose)
+}
+
+// connect will create a new AMQP connection
+func (client *ClientRabbitMQ) connect(addr string) (*amqp.Connection, error) {
+	conn, err := amqp.Dial(addr)
+
+	if err != nil {
+		return nil, fmt.Errorf("unable to dial RabbitMQ address: %v, error: %w", addr, err)
+	}
+
+	client.changeConnection(conn)
+	client.log(2002, addr)
+	return conn, nil
+}
+
+func (client *ClientRabbitMQ) getLogger() logging.Logging {
+	if client.logger == nil {
+		client.logger = createLogger()
+	}
+	return client.logger
+}
 
 // handleReconnect will wait for a connection error on
 // notifyConnClose, and then continuously attempt to reconnect.
-func (client *Client) handleReconnect(addr string) {
+func (client *ClientRabbitMQ) handleReconnect(addr string) {
 	for {
 		client.isReady = false
-		log(2001, addr)
+		client.log(2001, addr)
 
 		conn, err := client.connect(addr)
 
 		if err != nil {
-			log(4001, client.reconnectDelay, err)
+			client.log(4001, client.reconnectDelay, err)
 
 			select {
 			case <-client.done:
@@ -132,33 +298,16 @@ func (client *Client) handleReconnect(addr string) {
 	}
 }
 
-// ----------------------------------------------------------------------------
-
-// connect will create a new AMQP connection
-func (client *Client) connect(addr string) (*amqp.Connection, error) {
-	conn, err := amqp.Dial(addr)
-
-	if err != nil {
-		return nil, fmt.Errorf("unable to dial RabbitMQ address: %v, error: %w", addr, err)
-	}
-
-	client.changeConnection(conn)
-	log(2002, addr)
-	return conn, nil
-}
-
-// ----------------------------------------------------------------------------
-
 // handleReconnect will wait for a channel error
 // and then continuously attempt to re-initialize both channels
-func (client *Client) handleReInit(conn *amqp.Connection) bool {
+func (client *ClientRabbitMQ) handleReInit(conn *amqp.Connection) bool {
 	for {
 		client.isReady = false
 
 		err := client.init(conn)
 
 		if err != nil {
-			log(4002, client.reInitDelay, err)
+			client.log(4002, client.reInitDelay, err)
 
 			select {
 			case <-client.done:
@@ -176,21 +325,19 @@ func (client *Client) handleReInit(conn *amqp.Connection) bool {
 		case <-client.done:
 			return true
 		case <-client.notifyConnClose:
-			log(2003)
+			client.log(2003)
 			return false
 		case <-client.notifyChanClose:
-			log(2004)
+			client.log(2004)
 		}
 	}
 }
 
-// ----------------------------------------------------------------------------
-
 // init will initialize channel, declare the exchange, and declare the queue
-func (client *Client) init(conn *amqp.Connection) error {
+func (client *ClientRabbitMQ) init(conn *amqp.Connection) error {
 	defer func() {
 		if r := recover(); r != nil {
-			log(4003, r)
+			client.log(4003, r)
 		}
 	}()
 	ch, err := conn.Channel()
@@ -244,37 +391,18 @@ func (client *Client) init(conn *amqp.Connection) error {
 	client.changeChannel(ch)
 	client.isReady = true
 	client.notifyReady <- struct{}{}
-	log(2005)
+	client.log(2005)
 
 	return nil
 }
 
-// ----------------------------------------------------------------------------
-
-// changeConnection takes a new connection to the queue,
-// and updates the close listener to reflect this.
-func (client *Client) changeConnection(connection *amqp.Connection) {
-	client.connection = connection
-	client.notifyConnClose = make(chan *amqp.Error, 1)
-	client.connection.NotifyClose(client.notifyConnClose)
+// Log message.
+func (client *ClientRabbitMQ) log(messageNumber int, details ...interface{}) {
+	client.getLogger().Log(messageNumber, details...)
 }
-
-// ----------------------------------------------------------------------------
-
-// changeChannel takes a new channel to the queue,
-// and updates the channel listeners to reflect this.
-func (client *Client) changeChannel(channel *amqp.Channel) {
-	client.channel = channel
-	client.notifyChanClose = make(chan *amqp.Error, 1)
-	client.notifyConfirm = make(chan amqp.Confirmation, 1)
-	client.channel.NotifyClose(client.notifyChanClose)
-	client.channel.NotifyPublish(client.notifyConfirm)
-}
-
-// ----------------------------------------------------------------------------
 
 // progressively increase the retry delay
-func (client *Client) progressiveDelay(delay time.Duration) time.Duration {
+func (client *ClientRabbitMQ) progressiveDelay(delay time.Duration) time.Duration {
 	r, _ := rand.Int(rand.Reader, big.NewInt(int64(delay/time.Second)))
 	// if err != nil {
 	// 	fmt.Println("error:", err)
@@ -283,133 +411,16 @@ func (client *Client) progressiveDelay(delay time.Duration) time.Duration {
 }
 
 // ----------------------------------------------------------------------------
-
-// Push will push data onto the queue and wait for a confirm.
-// If no confirm is received by the resendTimeout,
-// it re-sends messages until a confirm is received.
-// This will block until the server sends a confirm. Errors are
-// only returned if the push action itself fails, see UnsafePush.
-func (client *Client) Push(ctx context.Context, record queues.Record) error {
-	if !client.isReady {
-		// wait for client to be ready
-		<-client.notifyReady
-	}
-	for {
-		err := client.UnsafePush(ctx, record)
-		if err != nil {
-			log(3001, client.resendDelay, record.GetMessageID(), err)
-			select {
-			case <-client.done:
-				return fmt.Errorf("client is shutting down")
-			case <-time.After(client.resendDelay):
-				client.resendDelay = client.progressiveDelay(client.resendDelay)
-			}
-			continue
-		}
-		select {
-		case confirm := <-client.notifyConfirm:
-			if confirm.Ack {
-				// reset resend delay
-				client.resendDelay = client.ResendDelay
-				return nil
-			}
-		case <-time.After(client.resendDelay):
-			client.resendDelay = client.progressiveDelay(client.resendDelay)
-		}
-		log(3002, client.resendDelay, record.GetMessageID())
-	}
-}
-
+// Private functions
 // ----------------------------------------------------------------------------
 
-// UnsafePush will push to the queue without checking for
-// confirmation. It returns an error if it fails to connect.
-// No guarantees are provided for if the server will
-// receive the message.
-func (client *Client) UnsafePush(ctx context.Context, record queues.Record) error {
-
-	if !client.isReady {
-		// wait for client to be ready
-		<-client.notifyReady
+func createLogger() logging.Logging {
+	options := []interface{}{
+		&logging.OptionCallerSkip{Value: 4},
 	}
-
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
-	return client.channel.PublishWithContext(
-		ctx,                 // context
-		client.ExchangeName, // exchange name
-		client.RoutingKey,   // routing key
-		false,               // mandatory
-		false,               // immediate
-		amqp.Publishing{ // message
-			Body:         []byte(record.GetMessage()),
-			ContentType:  "text/plain",
-			DeliveryMode: amqp.Persistent,
-			MessageId:    record.GetMessageID(),
-		},
-	)
-}
-
-// ----------------------------------------------------------------------------
-
-// Consume will continuously put queue items on the channel.
-// It is required to call delivery.Ack when it has been
-// successfully processed, or delivery.Nack when it fails.
-// Ignoring this will cause data to build up on the server.
-//   - prefetch is the number of deliveries for the rabbit mq client to prefetch
-//     from the server.  a good rule of thumb is to prefetch as many as there
-//     will be clients processing the deliveries.
-func (client *Client) Consume(prefetch int) (<-chan amqp.Delivery, error) {
-	if !client.isReady {
-		// wait for client to be ready
-		<-client.notifyReady
-	}
-
-	if prefetch < 0 {
-		prefetch = 1
-	}
-
-	if err := client.channel.Qos(
-		prefetch, // prefetch count (should set to the number of load goroutines?)
-		0,        // prefetch size
-		false,    // global
-	); err != nil {
-		return nil, fmt.Errorf("unable to set the RabbitMQ channel quality of service %w", err)
-	}
-
-	return client.channel.Consume(
-		client.QueueName, // queue
-		"",               // consumer uid, blank auto-generates a uid
-		false,            // auto-ack
-		false,            // exclusive
-		false,            // no-local (not supported by rabbitmq)
-		false,            // no-wait, false seems safest
-		nil,              // args
-	)
-}
-
-// ----------------------------------------------------------------------------
-
-// Close will cleanly shutdown the channel and connection.
-func (client *Client) Close() error {
-	if !client.isReady {
-		return fmt.Errorf("already closed: not connected to the server")
-	}
-	close(client.done)
-	close(client.notifyReady)
-
-	//FIXME:  connection.Close() closes underlying channels so do we need this?
-	err := client.channel.Close()
+	result, err := logging.NewSenzingLogger(ComponentID, IDMessages, options...)
 	if err != nil {
-		log(4004, err)
+		panic(err)
 	}
-
-	err = client.connection.Close()
-	if err != nil {
-		log(4005, err)
-	}
-
-	client.isReady = false
-	return nil
+	return result
 }

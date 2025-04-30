@@ -10,64 +10,24 @@ import (
 	"github.com/sourcegraph/conc/pool"
 )
 
-var clientPool chan *Client
+var clientPool chan *ClientSqs
 
 // ----------------------------------------------------------------------------
-// DELETE ME??  This is the old way of doing things, one record at a time.
-
-// read a record from the record channel and push it to the RabbitMQ queue
-// func processRecord(ctx context.Context, record queues.Record, newClientFn func() (*Client, error)) (err error) {
-// 	client := <-clientPool
-// 	err = client.Push(ctx, record)
-// 	if err != nil {
-// 		// on error, create a new SQS client
-// 		err = fmt.Errorf("error pushing record batch %w", err)
-// 		//put a new client in the pool, dropping the current one
-// 		newClient, newClientErr := newClientFn()
-// 		if newClientErr != nil {
-// 			err = fmt.Errorf("error creating a new client %w", newClientErr)
-// 		} else {
-// 			clientPool <- newClient
-// 		}
-// 		// make sure to close the old client
-// 		return fmt.Errorf("error creating a new client %w %w", client.Close(), err)
-// 	}
-// 	// return the client to the pool when done
-// 	clientPool <- client
-// 	return
-// }
-
-// ----------------------------------------------------------------------------
-
-// read a record from the record channel and push it to the SQS queue
-func processRecordBatch(ctx context.Context, recordchan <-chan queues.Record, newClientFn func() (*Client, error)) (err error) {
-	client := <-clientPool
-	err = client.PushBatch(ctx, recordchan)
-	if err != nil {
-		// on error, create a new SQS client
-		err = fmt.Errorf("error pushing record batch %w", err)
-		// put a new client in the pool, dropping the current one
-		newClient, newClientErr := newClientFn()
-		if newClientErr != nil {
-			err = fmt.Errorf("error creating a new client %w", newClientErr)
-		} else {
-			clientPool <- newClient
-		}
-		// make sure to close the old client
-		return fmt.Errorf("error creating a new client %w %w", client.Close(), err)
-	}
-	// return the client to the pool when done
-	clientPool <- client
-	return
-}
-
+// Public functions
 // ----------------------------------------------------------------------------
 
 // Starts a number of workers that push Records in the record channel to
 // the given queue.
 // - Workers restart when they are killed or die.
 // - respond to standard system signals.
-func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers int, recordchan <-chan queues.Record, logLevel string, jsonOutput bool) {
+func StartManagedProducer(
+	ctx context.Context,
+	urlString string,
+	numberOfWorkers int,
+	recordchan <-chan queues.Record,
+	logLevel string,
+	jsonOutput bool,
+) {
 
 	// default to the max number of OS threads
 	if numberOfWorkers <= 0 {
@@ -76,12 +36,15 @@ func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers
 	fmt.Println(time.Now(), "Number of producer workers:", numberOfWorkers)
 
 	ctx, cancel := context.WithCancel(ctx)
-	if err := SetLogLevel(ctx, logLevel); err != nil {
-		log(3003, logLevel, err)
+
+	logger := createLogger()
+	err := logger.SetLogLevel(logLevel)
+	if err != nil {
+		panic(err)
 	}
 
-	clientPool = make(chan *Client, numberOfWorkers)
-	newClientFn := func() (*Client, error) { return NewClient(ctx, urlString, logLevel, jsonOutput) }
+	clientPool = make(chan *ClientSqs, numberOfWorkers)
+	newClientFn := func() (*ClientSqs, error) { return NewClient(ctx, urlString, logLevel, jsonOutput) }
 
 	// populate an initial client pool
 	go func() { _ = createClients(ctx, numberOfWorkers, newClientFn) }()
@@ -116,9 +79,11 @@ func StartManagedProducer(ctx context.Context, urlString string, numberOfWorkers
 }
 
 // ----------------------------------------------------------------------------
+// Private functions
+// ----------------------------------------------------------------------------
 
 // create a number of clients and put them into the client queue
-func createClients(ctx context.Context, numOfClients int, newClientFn func() (*Client, error)) error {
+func createClients(ctx context.Context, numOfClients int, newClientFn func() (*ClientSqs, error)) error {
 	_ = ctx
 	countOfClientsCreated := 0
 	var errorStack error
@@ -133,4 +98,57 @@ func createClients(ctx context.Context, numOfClients int, newClientFn func() (*C
 	}
 	fmt.Println(time.Now(), countOfClientsCreated, "SQS clients created,", numOfClients, "requested")
 	return errorStack
+}
+
+// ----------------------------------------------------------------------------
+// DELETE ME??  This is the old way of doing things, one record at a time.
+
+// read a record from the record channel and push it to the RabbitMQ queue
+// func processRecord(ctx context.Context, record queues.Record, newClientFn func() (*Client, error)) (err error) {
+// 	client := <-clientPool
+// 	err = client.Push(ctx, record)
+// 	if err != nil {
+// 		// on error, create a new SQS client
+// 		err = fmt.Errorf("error pushing record batch %w", err)
+// 		//put a new client in the pool, dropping the current one
+// 		newClient, newClientErr := newClientFn()
+// 		if newClientErr != nil {
+// 			err = fmt.Errorf("error creating a new client %w", newClientErr)
+// 		} else {
+// 			clientPool <- newClient
+// 		}
+// 		// make sure to close the old client
+// 		return fmt.Errorf("error creating a new client %w %w", client.Close(), err)
+// 	}
+// 	// return the client to the pool when done
+// 	clientPool <- client
+// 	return
+// }
+
+// ----------------------------------------------------------------------------
+
+// read a record from the record channel and push it to the SQS queue
+func processRecordBatch(
+	ctx context.Context,
+	recordchan <-chan queues.Record,
+	newClientFn func() (*ClientSqs, error),
+) (err error) {
+	client := <-clientPool
+	err = client.PushBatch(ctx, recordchan)
+	if err != nil {
+		// on error, create a new SQS client
+		err = fmt.Errorf("error pushing record batch %w", err)
+		// put a new client in the pool, dropping the current one
+		newClient, newClientErr := newClientFn()
+		if newClientErr != nil {
+			err = fmt.Errorf("error creating a new client %w", newClientErr)
+		} else {
+			clientPool <- newClient
+		}
+		// make sure to close the old client
+		return fmt.Errorf("error creating a new client %w %w", client.Close(), err)
+	}
+	// return the client to the pool when done
+	clientPool <- client
+	return
 }

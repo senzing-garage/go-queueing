@@ -1,204 +1,51 @@
-package rabbitmq
+package rabbitmq_test
 
 import (
 	"context"
 	"reflect"
 	"testing"
-	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/senzing-garage/go-queueing/queues"
+	"github.com/senzing-garage/go-queueing/queues/rabbitmq"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewClient(test *testing.T) {
-	type args struct {
-		urlString string
-	}
 	tests := []struct {
-		name    string
-		args    args
-		want    *Client
-		wantErr bool
+		name        string
+		expected    *rabbitmq.ClientRabbitMQ
+		expectedErr bool
+		urlString   string
 	}{
-		// TODO: Add test cases.
+		// IMPROVE: Add test cases.
 	}
-	for _, tt := range tests {
-		test.Run(tt.name, func(test *testing.T) {
-			got, err := NewClient(tt.args.urlString)
-			if (err != nil) != tt.wantErr {
-				test.Errorf("NewClient() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				test.Errorf("NewClient() = %v, want %v", got, tt.want)
+	for _, testCase := range tests {
+		test.Run(testCase.name, func(test *testing.T) {
+			actual, err := rabbitmq.NewClient(testCase.urlString)
+			require.NoError(test, err)
+			require.Equal(test, testCase.expected, actual)
+			if !reflect.DeepEqual(actual, testCase.expected) {
+				test.Errorf("NewClient() = %v, expected: %v", actual, testCase.expected)
 			}
 		})
 	}
 }
 
 func TestInit(test *testing.T) {
-	type args struct {
-		client    *Client
+	tests := []struct {
+		name      string
+		client    *rabbitmq.ClientRabbitMQ
+		expected  *rabbitmq.ClientRabbitMQ
 		urlString string
-	}
-	tests := []struct {
-		name string
-		args args
-		want *Client
 	}{
-		// TODO: Add test cases.
+		// IMPROVE: Add test cases.
 	}
-	for _, tt := range tests {
-		test.Run(tt.name, func(test *testing.T) {
-			if got := Init(tt.args.client, tt.args.urlString); !reflect.DeepEqual(got, tt.want) {
-				test.Errorf("Init() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestClient_handleReconnect(test *testing.T) {
-	type args struct {
-		addr string
-	}
-	tests := []struct {
-		name   string
-		client *Client
-		args   args
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		test.Run(tt.name, func(test *testing.T) {
-			_ = test
-			tt.client.handleReconnect(tt.args.addr)
-		})
-	}
-}
-
-func TestClient_connect(test *testing.T) {
-	type args struct {
-		addr string
-	}
-	tests := []struct {
-		name    string
-		client  *Client
-		args    args
-		want    *amqp.Connection
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		test.Run(tt.name, func(test *testing.T) {
-			got, err := tt.client.connect(tt.args.addr)
-			if (err != nil) != tt.wantErr {
-				test.Errorf("Client.connect() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				test.Errorf("Client.connect() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestClient_handleReInit(test *testing.T) {
-	type args struct {
-		conn *amqp.Connection
-	}
-	tests := []struct {
-		name   string
-		client *Client
-		args   args
-		want   bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		test.Run(tt.name, func(test *testing.T) {
-			if got := tt.client.handleReInit(tt.args.conn); got != tt.want {
-				test.Errorf("Client.handleReInit() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestClient_init(test *testing.T) {
-	type args struct {
-		conn *amqp.Connection
-	}
-	tests := []struct {
-		name    string
-		client  *Client
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		test.Run(tt.name, func(test *testing.T) {
-			if err := tt.client.init(tt.args.conn); (err != nil) != tt.wantErr {
-				test.Errorf("Client.init() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestClient_changeConnection(test *testing.T) {
-	type args struct {
-		connection *amqp.Connection
-	}
-	tests := []struct {
-		name   string
-		client *Client
-		args   args
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		test.Run(tt.name, func(test *testing.T) {
-			_ = test
-			tt.client.changeConnection(tt.args.connection)
-		})
-	}
-}
-
-func TestClient_changeChannel(test *testing.T) {
-	type args struct {
-		channel *amqp.Channel
-	}
-	tests := []struct {
-		name   string
-		client *Client
-		args   args
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		test.Run(tt.name, func(test *testing.T) {
-			_ = test
-			tt.client.changeChannel(tt.args.channel)
-		})
-	}
-}
-
-func TestClient_progressiveDelay(test *testing.T) {
-	type args struct {
-		delay time.Duration
-	}
-	tests := []struct {
-		name   string
-		client *Client
-		args   args
-		want   time.Duration
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		test.Run(tt.name, func(test *testing.T) {
-			if got := tt.client.progressiveDelay(tt.args.delay); !reflect.DeepEqual(got, tt.want) {
-				test.Errorf("Client.progressiveDelay() = %v, want %v", got, tt.want)
+	for _, testCase := range tests {
+		test.Run(testCase.name, func(test *testing.T) {
+			actual := rabbitmq.Init(testCase.client, testCase.urlString)
+			if !reflect.DeepEqual(actual, testCase.expected) {
+				test.Errorf("Init() = %v, want %v", actual, testCase.expected)
 			}
 		})
 	}
@@ -206,22 +53,18 @@ func TestClient_progressiveDelay(test *testing.T) {
 
 func TestClient_Push(test *testing.T) {
 	ctx := context.TODO()
-	type args struct {
-		record queues.Record
-	}
 	tests := []struct {
-		name    string
-		client  *Client
-		args    args
-		wantErr bool
+		name        string
+		client      *rabbitmq.ClientRabbitMQ
+		expectedErr bool
+		record      queues.Record
 	}{
-		// TODO: Add test cases.
+		// IMPROVE: Add test cases.
 	}
-	for _, tt := range tests {
-		test.Run(tt.name, func(test *testing.T) {
-			if err := tt.client.Push(ctx, tt.args.record); (err != nil) != tt.wantErr {
-				test.Errorf("Client.Push() error = %v, wantErr %v", err, tt.wantErr)
-			}
+	for _, testCase := range tests {
+		test.Run(testCase.name, func(test *testing.T) {
+			err := testCase.client.Push(ctx, testCase.record)
+			require.NoError(test, err)
 		})
 	}
 }
@@ -232,18 +75,17 @@ func TestClient_UnsafePush(test *testing.T) {
 		record queues.Record
 	}
 	tests := []struct {
-		name    string
-		client  *Client
-		args    args
-		wantErr bool
+		name        string
+		client      *rabbitmq.ClientRabbitMQ
+		args        args
+		expectedErr error
 	}{
-		// TODO: Add test cases.
+		// IMPROVE: Add test cases.
 	}
-	for _, tt := range tests {
-		test.Run(tt.name, func(test *testing.T) {
-			if err := tt.client.UnsafePush(ctx, tt.args.record); (err != nil) != tt.wantErr {
-				test.Errorf("Client.UnsafePush() error = %v, wantErr %v", err, tt.wantErr)
-			}
+	for _, testCase := range tests {
+		test.Run(testCase.name, func(test *testing.T) {
+			err := testCase.client.UnsafePush(ctx, testCase.args.record)
+			require.Equal(test, testCase.expectedErr, err)
 		})
 	}
 }
@@ -253,23 +95,20 @@ func TestClient_Consume(test *testing.T) {
 		prefetch int
 	}
 	tests := []struct {
-		name    string
-		client  *Client
-		args    args
-		want    <-chan amqp.Delivery
-		wantErr bool
+		name        string
+		client      *rabbitmq.ClientRabbitMQ
+		args        args
+		expected    <-chan amqp.Delivery
+		expectedErr error
 	}{
-		// TODO: Add test cases.
+		// IMPROVE: Add test cases.
 	}
-	for _, tt := range tests {
-		test.Run(tt.name, func(test *testing.T) {
-			got, err := tt.client.Consume(tt.args.prefetch)
-			if (err != nil) != tt.wantErr {
-				test.Errorf("Client.Consume() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				test.Errorf("Client.Consume() = %v, want %v", got, tt.want)
+	for _, testCase := range tests {
+		test.Run(testCase.name, func(test *testing.T) {
+			actual, actualErr := testCase.client.Consume(testCase.args.prefetch)
+			require.Equal(test, testCase.expectedErr, actualErr)
+			if !reflect.DeepEqual(actual, testCase.expected) {
+				test.Errorf("Client.Consume() = %v, want %v", actual, testCase.expected)
 			}
 		})
 	}
@@ -277,17 +116,16 @@ func TestClient_Consume(test *testing.T) {
 
 func TestClient_Close(test *testing.T) {
 	tests := []struct {
-		name    string
-		client  *Client
-		wantErr bool
+		name        string
+		client      *rabbitmq.ClientRabbitMQ
+		expectedErr error
 	}{
-		// TODO: Add test cases.
+		// IMPROVE: Add test cases.
 	}
-	for _, tt := range tests {
-		test.Run(tt.name, func(test *testing.T) {
-			if err := tt.client.Close(); (err != nil) != tt.wantErr {
-				test.Errorf("Client.Close() error = %v, wantErr %v", err, tt.wantErr)
-			}
+	for _, testCase := range tests {
+		test.Run(testCase.name, func(test *testing.T) {
+			actualErr := testCase.client.Close()
+			require.Equal(test, testCase.expectedErr, actualErr)
 		})
 	}
 }

@@ -11,12 +11,6 @@ import (
 	"github.com/sourcegraph/conc/pool"
 )
 
-var jobPool chan *RabbitConsumerJob
-
-// ----------------------------------------------------------------------------
-// Job implementation
-// ----------------------------------------------------------------------------
-
 // define a structure that will implement the Job interface
 type RabbitConsumerJob struct {
 	delivery  amqp.Delivery
@@ -26,59 +20,75 @@ type RabbitConsumerJob struct {
 	withInfo  bool
 }
 
+var jobPool chan *RabbitConsumerJob
+
+// ----------------------------------------------------------------------------
+// Public methods
 // ----------------------------------------------------------------------------
 
 // Job interface implementation:
 // Execute() is run once for each Job
-func (j *RabbitConsumerJob) Execute(ctx context.Context) error {
+func (job *RabbitConsumerJob) Execute(ctx context.Context) error {
 	// increment the number of times this job struct was used and return to the pool
 	defer func() {
-		j.usedCount++
-		jobPool <- j
+		job.usedCount++
+		jobPool <- job
 	}()
 	// fmt.Printf("Received a message- msgId: %s, msgCnt: %d, ConsumerTag: %s\n", id, j.delivery.MessageCount, j.delivery.ConsumerTag)
-	record, newRecordErr := record.NewRecord(string(j.delivery.Body))
+	record, newRecordErr := record.NewRecord(string(job.delivery.Body))
 	if newRecordErr == nil {
 		flags := senzing.SzWithoutInfo
-		if j.withInfo {
+		if job.withInfo {
 			flags = senzing.SzWithInfo
 		}
-		result, err := (*j.engine).AddRecord(ctx, record.DataSource, record.ID, record.JSON, flags)
+		result, err := (*job.engine).AddRecord(ctx, record.DataSource, record.ID, record.JSON, flags)
 		if err != nil {
-			return fmt.Errorf("add record error, record id: %s, message id: %s, result: %s, %w", j.delivery.MessageId, record.ID, result, err)
+			return fmt.Errorf(
+				"add record error, record id: %s, message id: %s, result: %s, %w",
+				job.delivery.MessageId,
+				record.ID,
+				result,
+				err,
+			)
 		}
 
 		// when we successfully process a delivery, acknowledge it.
-		return j.delivery.Ack(false)
+		return job.delivery.Ack(false)
 	}
 	// when we get an invalid delivery, negatively acknowledge and send to the dead letter queue
-	err := j.delivery.Nack(false, false)
-	return fmt.Errorf("invalid deliver from RabbitMQ, message id: %s, %w", j.delivery.MessageId, err)
+	err := job.delivery.Nack(false, false)
+	return fmt.Errorf("invalid deliver from RabbitMQ, message id: %s, %w", job.delivery.MessageId, err)
 }
 
-// ----------------------------------------------------------------------------
-
 // Whenever Execute() returns an error or panics, this is called
-func (j *RabbitConsumerJob) OnError(err error) {
+func (job *RabbitConsumerJob) OnError(err error) {
 	_ = err
-	if j.delivery.Redelivered {
+	if job.delivery.Redelivered {
 		// swallow any error, it'll timeout and be redelivered
-		_ = j.delivery.Nack(false, false)
+		_ = job.delivery.Nack(false, false)
 	} else {
 		// swallow any error, it'll timeout and be redelivered
-		_ = j.delivery.Nack(false, true)
+		_ = job.delivery.Nack(false, true)
 	}
 }
 
 // ----------------------------------------------------------------------------
-// -- add records in RabbitMQ to Senzing
+// Public functions
 // ----------------------------------------------------------------------------
 
 // Starts a number of workers that read Records from the given queue and add
 // them to Senzing.
 // - Workers restart when they are killed or die.
 // - respond to standard system signals.
-func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers int, szEngine *senzing.SzEngine, withInfo bool, logLevel string, jsonOutput bool) error {
+func StartManagedConsumer(
+	ctx context.Context,
+	urlString string,
+	numberOfWorkers int,
+	szEngine *senzing.SzEngine,
+	withInfo bool,
+	logLevel string,
+	jsonOutput bool,
+) error {
 	_ = jsonOutput
 
 	// default to the max number of OS threads
@@ -88,12 +98,14 @@ func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	if err := SetLogLevel(ctx, logLevel); err != nil {
-		log(3003, logLevel, err)
-	}
-	logger = getLogger()
 
-	log(2012, numberOfWorkers)
+	logger := createLogger()
+	err := logger.SetLogLevel(logLevel)
+	if err != nil {
+		panic(err)
+	}
+
+	logger.Log(2012, numberOfWorkers)
 
 	// setup jobs that will be used to process RabbitMQ deliveries
 	jobPool = make(chan *RabbitConsumerJob, numberOfWorkers)
@@ -131,7 +143,7 @@ func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers
 
 		jobCount++
 		if jobCount%10000 == 0 {
-			log(2010, jobCount)
+			logger.Log(2010, jobCount)
 		}
 	}
 
@@ -145,7 +157,7 @@ func StartManagedConsumer(ctx context.Context, urlString string, numberOfWorkers
 	ok := true
 	for ok {
 		job, ok = <-jobPool
-		log(2011, job.id, job.usedCount)
+		logger.Log(2011, job.id, job.usedCount)
 	}
 
 	return nil
