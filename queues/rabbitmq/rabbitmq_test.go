@@ -1,7 +1,6 @@
 package rabbitmq_test
 
 import (
-	"context"
 	"reflect"
 	"testing"
 
@@ -12,6 +11,8 @@ import (
 )
 
 func TestNewClient(test *testing.T) {
+	test.Parallel()
+
 	tests := []struct {
 		name        string
 		expected    *rabbitmq.ClientRabbitMQ
@@ -22,9 +23,12 @@ func TestNewClient(test *testing.T) {
 	}
 	for _, testCase := range tests {
 		test.Run(testCase.name, func(test *testing.T) {
+			test.Parallel()
+
 			actual, err := rabbitmq.NewClient(testCase.urlString)
 			require.NoError(test, err)
 			require.Equal(test, testCase.expected, actual)
+
 			if !reflect.DeepEqual(actual, testCase.expected) {
 				test.Errorf("NewClient() = %v, expected: %v", actual, testCase.expected)
 			}
@@ -33,6 +37,8 @@ func TestNewClient(test *testing.T) {
 }
 
 func TestInit(test *testing.T) {
+	test.Parallel()
+
 	tests := []struct {
 		name      string
 		client    *rabbitmq.ClientRabbitMQ
@@ -43,6 +49,8 @@ func TestInit(test *testing.T) {
 	}
 	for _, testCase := range tests {
 		test.Run(testCase.name, func(test *testing.T) {
+			test.Parallel()
+
 			actual := rabbitmq.Init(testCase.client, testCase.urlString)
 			if !reflect.DeepEqual(actual, testCase.expected) {
 				test.Errorf("Init() = %v, want %v", actual, testCase.expected)
@@ -52,7 +60,9 @@ func TestInit(test *testing.T) {
 }
 
 func TestClient_Push(test *testing.T) {
-	ctx := context.TODO()
+	test.Parallel()
+	ctx := test.Context()
+
 	tests := []struct {
 		name        string
 		client      *rabbitmq.ClientRabbitMQ
@@ -63,6 +73,8 @@ func TestClient_Push(test *testing.T) {
 	}
 	for _, testCase := range tests {
 		test.Run(testCase.name, func(test *testing.T) {
+			test.Parallel()
+
 			err := testCase.client.Push(ctx, testCase.record)
 			require.NoError(test, err)
 		})
@@ -70,10 +82,13 @@ func TestClient_Push(test *testing.T) {
 }
 
 func TestClient_UnsafePush(test *testing.T) {
-	ctx := context.TODO()
+	test.Parallel()
+	ctx := test.Context()
+
 	type args struct {
 		record queues.Record
 	}
+
 	tests := []struct {
 		name        string
 		client      *rabbitmq.ClientRabbitMQ
@@ -84,6 +99,8 @@ func TestClient_UnsafePush(test *testing.T) {
 	}
 	for _, testCase := range tests {
 		test.Run(testCase.name, func(test *testing.T) {
+			test.Parallel()
+
 			err := testCase.client.UnsafePush(ctx, testCase.args.record)
 			require.Equal(test, testCase.expectedErr, err)
 		})
@@ -91,22 +108,24 @@ func TestClient_UnsafePush(test *testing.T) {
 }
 
 func TestClient_Consume(test *testing.T) {
-	type args struct {
-		prefetch int
-	}
+	test.Parallel()
+
 	tests := []struct {
 		name        string
 		client      *rabbitmq.ClientRabbitMQ
-		args        args
 		expected    <-chan amqp.Delivery
 		expectedErr error
+		prefetch    int
 	}{
 		// IMPROVE: Add test cases.
 	}
 	for _, testCase := range tests {
 		test.Run(testCase.name, func(test *testing.T) {
-			actual, actualErr := testCase.client.Consume(testCase.args.prefetch)
+			test.Parallel()
+
+			actual, actualErr := testCase.client.Consume(testCase.prefetch)
 			require.Equal(test, testCase.expectedErr, actualErr)
+
 			if !reflect.DeepEqual(actual, testCase.expected) {
 				test.Errorf("Client.Consume() = %v, want %v", actual, testCase.expected)
 			}
@@ -115,6 +134,8 @@ func TestClient_Consume(test *testing.T) {
 }
 
 func TestClient_Close(test *testing.T) {
+	test.Parallel()
+
 	tests := []struct {
 		name        string
 		client      *rabbitmq.ClientRabbitMQ
@@ -124,6 +145,8 @@ func TestClient_Close(test *testing.T) {
 	}
 	for _, testCase := range tests {
 		test.Run(testCase.name, func(test *testing.T) {
+			test.Parallel()
+
 			actualErr := testCase.client.Close()
 			require.Equal(test, testCase.expectedErr, actualErr)
 		})

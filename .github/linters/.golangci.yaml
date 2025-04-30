@@ -11,37 +11,37 @@ linters:
     - containedctx
     - contextcheck
     - copyloopvar
-    # - cyclop
+    - cyclop
     - decorder
-    # - depguard
+    - depguard
     - dogsled
     - dupl
     - dupword
     - durationcheck
-    # - err113
+    - err113
     - errcheck
     - errchkjson
     - errname
     - errorlint
     - exhaustive
-    # - exhaustruct
+    - exhaustruct
     - exptostd
     - fatcontext
-    # - forbidigo
+    - forbidigo
     - forcetypeassert
-    # - funcorder
-    # - funlen
+    - funcorder
+    - funlen
     - ginkgolinter
     - gocheckcompilerdirectives
-    # - gochecknoglobals
-    # - gochecknoinits
+    - gochecknoglobals
+    - gochecknoinits
     - gochecksumtype
     - gocognit
     - goconst
     - gocritic
     - gocyclo
-    # - godot
-    # - godox
+    - godot
+    - godox
     - goheader
     - gomoddirectives
     - gomodguard
@@ -55,28 +55,28 @@ linters:
     - inamedparam
     - ineffassign
     - interfacebloat
-    # - intrange
-    # - ireturn
-    # - lll
+    - intrange
+    - ireturn
+    - lll
     - loggercheck
     - maintidx
     - makezero
     - mirror
     - misspell
-    # - mnd
+    - mnd
     - musttag
-    # - nakedret
-    # - nestif
+    - nakedret
+    - nestif
     - nilerr
     - nilnesserr
     - nilnil
-    # - nlreturn
+    - nlreturn
     - noctx
     - nolintlint
-    # - nonamedreturns
+    - nonamedreturns
     - nosprintfhostport
-    # - paralleltest
-    # - perfsprint
+    - paralleltest
+    - perfsprint
     - prealloc
     - predeclared
     - promlinter
@@ -93,23 +93,23 @@ linters:
     - tagliatelle
     - testableexamples
     - testifylint
-    # - testpackage
-    # - thelper
+    - testpackage
+    - thelper
     - tparallel
-    # - unconvert
+    - unconvert
     - unparam
     - unused
     - usestdlibvars
-    # - usetesting
-    # - varnamelen
+    - usetesting
+    - varnamelen
     - wastedassign
-    # - whitespace
-    # - wrapcheck
-    # - wsl
+    - whitespace
+    - wrapcheck
+    - wsl
     - zerologlint
   disable:
     - gochecknoglobals
-    - gochecknoinits
+    - lll
   exclusions:
     generated: lax
     presets:
@@ -122,6 +122,8 @@ linters:
       - builtin$
       - examples$
   settings:
+    cyclop:
+      max-complexity: 11
     depguard:
       rules:
         prevent_unmaintained_packages:
@@ -133,24 +135,38 @@ linters:
               desc: "replaced by io and os packages since Go 1.16: https://tip.golang.org/doc/go1.16#ioutil"
     exhaustruct:
       exclude:
-        - '.+/cobra\.Command$'
+        - '.+/amqp091\.Publishing$'
+        - '.+/amqp\.Publishing$'
+        - '.+/rabbitmq\.ClientRabbitMQ$'
+        - '.+/rabbitmq\.RabbitConsumerJob$'
+        - '.+/sqs\.ClientSqs$'
+        - '.+/sqs\.ConsumerJobSqs$'
+        - '.+/sqs\.GetQueueUrlInput$'
+        - '.+/sqs\.ReceiveMessageInput$'
+        - '.+/sqs\.SendMessageInput$'
+        - '.+/types\.MessageAttributeValue$'
+        - '.+/types\.SendMessageBatchRequestEntry$'
+    funlen:
+      lines: 85
     ireturn:
       allow:
-        - anon
-        - empty
         - error
-        - stdlib
+        - logging.Logging
     mnd:
       ignored-functions:
         - '^logger\.Log$'
+        - '^client\.log$'
+        - '^logging\.OptionCallerSkip$'
+        - '^big\.NewInt$'
+        - '^context\.WithTimeout$'
 
 formatters:
   enable:
     - gci
     - gofmt
-    # - gofumpt
+    - gofumpt
     - goimports
-    # - golines
+    - golines
   exclusions:
     generated: lax
     paths:

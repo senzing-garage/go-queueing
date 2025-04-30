@@ -7,11 +7,12 @@ import (
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/senzing-garage/go-helpers/record"
+	"github.com/senzing-garage/go-helpers/wraperror"
 	"github.com/senzing-garage/sz-sdk-go/senzing"
 	"github.com/sourcegraph/conc/pool"
 )
 
-// define a structure that will implement the Job interface
+// Define a structure that will implement the Job interface.
 type RabbitConsumerJob struct {
 	delivery  amqp.Delivery
 	engine    *senzing.SzEngine
@@ -27,7 +28,7 @@ var jobPool chan *RabbitConsumerJob
 // ----------------------------------------------------------------------------
 
 // Job interface implementation:
-// Execute() is run once for each Job
+// Execute() is run once for each Job.
 func (job *RabbitConsumerJob) Execute(ctx context.Context) error {
 	// increment the number of times this job struct was used and return to the pool
 	defer func() {
@@ -41,6 +42,7 @@ func (job *RabbitConsumerJob) Execute(ctx context.Context) error {
 		if job.withInfo {
 			flags = senzing.SzWithInfo
 		}
+
 		result, err := (*job.engine).AddRecord(ctx, record.DataSource, record.ID, record.JSON, flags)
 		if err != nil {
 			return fmt.Errorf(
@@ -53,14 +55,17 @@ func (job *RabbitConsumerJob) Execute(ctx context.Context) error {
 		}
 
 		// when we successfully process a delivery, acknowledge it.
-		return job.delivery.Ack(false)
+		err = job.delivery.Ack(false)
+
+		return wraperror.Errorf(err, "queues.rabbitmq.Execute.Ack error: %w", err)
 	}
 	// when we get an invalid delivery, negatively acknowledge and send to the dead letter queue
 	err := job.delivery.Nack(false, false)
+
 	return fmt.Errorf("invalid deliver from RabbitMQ, message id: %s, %w", job.delivery.MessageId, err)
 }
 
-// Whenever Execute() returns an error or panics, this is called
+// Whenever Execute() returns an error or panics, this is called.
 func (job *RabbitConsumerJob) OnError(err error) {
 	_ = err
 	if job.delivery.Redelivered {
@@ -100,6 +105,7 @@ func StartManagedConsumer(
 	defer cancel()
 
 	logger := createLogger()
+
 	err := logger.SetLogLevel(logLevel)
 	if err != nil {
 		panic(err)
@@ -109,7 +115,7 @@ func StartManagedConsumer(
 
 	// setup jobs that will be used to process RabbitMQ deliveries
 	jobPool = make(chan *RabbitConsumerJob, numberOfWorkers)
-	for i := 0; i < numberOfWorkers; i++ {
+	for i := range numberOfWorkers {
 		jobPool <- &RabbitConsumerJob{
 			engine:    szEngine,
 			id:        i,
@@ -129,12 +135,14 @@ func StartManagedConsumer(
 		return fmt.Errorf("unable to get a new RabbitMQ delivery channel %w", err)
 	}
 
-	p := pool.New().WithMaxGoroutines(numberOfWorkers)
+	workerPool := pool.New().WithMaxGoroutines(numberOfWorkers)
 	jobCount := 0
+
 	for delivery := range deliveries {
 		job := <-jobPool
 		job.delivery = delivery
-		p.Go(func() {
+
+		workerPool.Go(func() {
 			err := job.Execute(ctx)
 			if err != nil {
 				job.OnError(err)
@@ -148,12 +156,13 @@ func StartManagedConsumer(
 	}
 
 	// Wait for all the records in the record channel to be processed
-	p.Wait()
+	workerPool.Wait()
 
 	// clean up after ourselves
 	close(jobPool)
 	// drain the job pool
 	var job *RabbitConsumerJob
+
 	ok := true
 	for ok {
 		job, ok = <-jobPool

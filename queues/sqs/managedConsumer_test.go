@@ -9,6 +9,8 @@ import (
 )
 
 func TestSQSJob_Execute(test *testing.T) {
+	test.Parallel()
+
 	tests := []struct {
 		name              string
 		expectedErr       error
@@ -19,6 +21,7 @@ func TestSQSJob_Execute(test *testing.T) {
 	}
 	for _, testCase := range tests {
 		test.Run(testCase.name, func(test *testing.T) {
+			test.Parallel()
 			ctx := test.Context()
 			expectedErr := testCase.job.Execute(ctx, testCase.visibilitySeconds)
 			require.Equal(test, testCase.expectedErr, expectedErr)
@@ -27,6 +30,8 @@ func TestSQSJob_Execute(test *testing.T) {
 }
 
 func TestSQSJob_OnError(test *testing.T) {
+	test.Parallel()
+
 	tests := []struct {
 		name        string
 		expectedErr error
@@ -36,6 +41,7 @@ func TestSQSJob_OnError(test *testing.T) {
 	}
 	for _, testCase := range tests {
 		test.Run(testCase.name, func(test *testing.T) {
+			test.Parallel()
 			ctx := test.Context()
 			testCase.job.OnError(ctx, testCase.expectedErr)
 		})
@@ -43,6 +49,8 @@ func TestSQSJob_OnError(test *testing.T) {
 }
 
 func TestStartManagedConsumer(test *testing.T) {
+	test.Parallel()
+
 	tests := []struct {
 		name              string
 		expectedErr       bool
@@ -58,6 +66,7 @@ func TestStartManagedConsumer(test *testing.T) {
 	}
 	for _, testCase := range tests {
 		test.Run(testCase.name, func(test *testing.T) {
+			test.Parallel()
 			ctx := test.Context()
 			actualErr := sqs.StartManagedConsumer(
 				ctx,

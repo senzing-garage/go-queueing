@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"runtime"
-	"time"
 
 	"github.com/senzing-garage/go-queueing/queues"
 	"github.com/sourcegraph/conc/pool"
@@ -28,16 +27,15 @@ func StartManagedProducer(
 	logLevel string,
 	jsonOutput bool,
 ) {
-
 	// default to the max number of OS threads
 	if numberOfWorkers <= 0 {
 		numberOfWorkers = runtime.GOMAXPROCS(0)
 	}
-	fmt.Println(time.Now(), "Number of producer workers:", numberOfWorkers)
 
 	ctx, cancel := context.WithCancel(ctx)
 
 	logger := createLogger()
+
 	err := logger.SetLogLevel(logLevel)
 	if err != nil {
 		panic(err)
@@ -49,23 +47,23 @@ func StartManagedProducer(
 	// populate an initial client pool
 	go func() { _ = createClients(ctx, numberOfWorkers, newClientFn) }()
 
-	p := pool.New().WithMaxGoroutines(numberOfWorkers)
+	workerPool := pool.New().WithMaxGoroutines(numberOfWorkers)
 	for i := 0; i < numberOfWorkers; i++ {
-		p.Go(func() {
+		workerPool.Go(func() {
 			i := i
+
 			err := processRecordBatch(ctx, recordchan, newClientFn)
 			if err != nil {
-				fmt.Println("Worker[", i, "] error:", err)
+				fmt.Println("Worker[", i, "] error:", err) //nolint
 			}
 		})
 	}
 
 	// Wait for all the records in the record channel to be processed
-	p.Wait()
+	workerPool.Wait()
 
 	// clean up after ourselves
 	cancel()
-	fmt.Println(time.Now(), "Clean up job queue and client pool.")
 	close(clientPool)
 	// drain the client pool, closing sqs connections
 	for len(clientPool) > 0 {
@@ -75,19 +73,22 @@ func StartManagedProducer(
 			_ = client.Close()
 		}
 	}
-
 }
 
 // ----------------------------------------------------------------------------
 // Private functions
 // ----------------------------------------------------------------------------
 
-// create a number of clients and put them into the client queue
+// Create a number of clients and put them into the client queue.
 func createClients(ctx context.Context, numOfClients int, newClientFn func() (*ClientSqs, error)) error {
 	_ = ctx
 	countOfClientsCreated := 0
+
 	var errorStack error
-	for i := 0; i < numOfClients; i++ {
+
+	for i := range numOfClients {
+		_ = i
+
 		client, err := newClientFn()
 		if err != nil {
 			errorStack = fmt.Errorf("error creating a new client %w", err)
@@ -96,7 +97,7 @@ func createClients(ctx context.Context, numOfClients int, newClientFn func() (*C
 			clientPool <- client
 		}
 	}
-	fmt.Println(time.Now(), countOfClientsCreated, "SQS clients created,", numOfClients, "requested")
+
 	return errorStack
 }
 
@@ -127,13 +128,16 @@ func createClients(ctx context.Context, numOfClients int, newClientFn func() (*C
 
 // ----------------------------------------------------------------------------
 
-// read a record from the record channel and push it to the SQS queue
+// Read a record from the record channel and push it to the SQS queue.
 func processRecordBatch(
 	ctx context.Context,
 	recordchan <-chan queues.Record,
 	newClientFn func() (*ClientSqs, error),
-) (err error) {
+) error {
+	var err error
+
 	client := <-clientPool
+
 	err = client.PushBatch(ctx, recordchan)
 	if err != nil {
 		// on error, create a new SQS client
@@ -150,5 +154,6 @@ func processRecordBatch(
 	}
 	// return the client to the pool when done
 	clientPool <- client
-	return
+
+	return err
 }

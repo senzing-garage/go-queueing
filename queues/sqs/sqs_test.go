@@ -11,6 +11,8 @@ import (
 )
 
 func TestNewClient(test *testing.T) {
+	test.Parallel()
+
 	tests := []struct {
 		name        string
 		expected    *sqs.ClientSqs
@@ -19,10 +21,11 @@ func TestNewClient(test *testing.T) {
 		logLevel    string
 		urlString   string
 	}{
-		// TODO: Add test cases.
+		// IMPROVE: Add test cases.
 	}
 	for _, testCase := range tests {
 		test.Run(testCase.name, func(test *testing.T) {
+			test.Parallel()
 			ctx := test.Context()
 			actual, actualErr := sqs.NewClient(
 				ctx,
@@ -31,6 +34,7 @@ func TestNewClient(test *testing.T) {
 				testCase.jsonOutput,
 			)
 			require.Equal(test, testCase.expectedErr, actualErr)
+
 			if !reflect.DeepEqual(actual, testCase.expected) {
 				test.Errorf("NewClient() = %v, want %v", actual, testCase.expected)
 			}
@@ -39,16 +43,19 @@ func TestNewClient(test *testing.T) {
 }
 
 func TestClient_PushDeadRecord(test *testing.T) {
+	test.Parallel()
+
 	tests := []struct {
 		name        string
 		client      *sqs.ClientSqs
 		expectedErr error
 		record      types.Message
 	}{
-		// TODO: Add test cases.
+		// IMPROVE: Add test cases.
 	}
 	for _, testCase := range tests {
 		test.Run(testCase.name, func(test *testing.T) {
+			test.Parallel()
 			ctx := test.Context()
 			expectedErr := testCase.client.PushDeadRecord(ctx, testCase.record)
 			require.Equal(test, testCase.expectedErr, expectedErr)
@@ -57,16 +64,19 @@ func TestClient_PushDeadRecord(test *testing.T) {
 }
 
 func TestClient_Push(test *testing.T) {
+	test.Parallel()
+
 	tests := []struct {
 		name        string
 		client      *sqs.ClientSqs
 		expectedErr error
 		record      queues.Record
 	}{
-		// TODO: Add test cases.
+		// IMPROVE: Add test cases.
 	}
 	for _, testCase := range tests {
 		test.Run(testCase.name, func(test *testing.T) {
+			test.Parallel()
 			ctx := test.Context()
 			actualErr := testCase.client.Push(ctx, testCase.record)
 			require.Equal(test, testCase.expectedErr, actualErr)
@@ -75,16 +85,19 @@ func TestClient_Push(test *testing.T) {
 }
 
 func TestClient_PushBatch(test *testing.T) {
+	test.Parallel()
+
 	tests := []struct {
 		name          string
 		client        *sqs.ClientSqs
 		expectedErr   error
 		recordChannel <-chan queues.Record
 	}{
-		// TODO: Add test cases.
+		// IMPROVE: Add test cases.
 	}
 	for _, testCase := range tests {
 		test.Run(testCase.name, func(test *testing.T) {
+			test.Parallel()
 			ctx := test.Context()
 			actualErr := testCase.client.PushBatch(ctx, testCase.recordChannel)
 			require.Equal(test, testCase.expectedErr, actualErr)
@@ -93,6 +106,8 @@ func TestClient_PushBatch(test *testing.T) {
 }
 
 func TestClient_Consume(test *testing.T) {
+	test.Parallel()
+
 	tests := []struct {
 		name              string
 		client            *sqs.ClientSqs
@@ -100,13 +115,15 @@ func TestClient_Consume(test *testing.T) {
 		expectedErr       error
 		visibilitySeconds int32
 	}{
-		// TODO: Add test cases.
+		// IMPROVE: Add test cases.
 	}
 	for _, testCase := range tests {
 		test.Run(testCase.name, func(test *testing.T) {
+			test.Parallel()
 			ctx := test.Context()
 			actual, actualErr := testCase.client.Consume(ctx, testCase.visibilitySeconds)
 			require.Equal(test, testCase.expectedErr, actualErr)
+
 			if !reflect.DeepEqual(actual, testCase.expected) {
 				test.Errorf("Client.Consume() = %v, want %v", actual, testCase.expected)
 			}
@@ -115,16 +132,19 @@ func TestClient_Consume(test *testing.T) {
 }
 
 func TestClient_RemoveMessage(test *testing.T) {
+	test.Parallel()
+
 	tests := []struct {
 		name        string
 		client      *sqs.ClientSqs
 		expectedErr error
 		message     types.Message
 	}{
-		// TODO: Add test cases.
+		// IMPROVE: Add test cases.
 	}
 	for _, testCase := range tests {
 		test.Run(testCase.name, func(test *testing.T) {
+			test.Parallel()
 			ctx := test.Context()
 			actualErr := testCase.client.RemoveMessage(ctx, testCase.message)
 			require.Equal(test, testCase.expectedErr, actualErr)
@@ -133,6 +153,8 @@ func TestClient_RemoveMessage(test *testing.T) {
 }
 
 func TestClient_SetMessageVisibility(test *testing.T) {
+	test.Parallel()
+
 	tests := []struct {
 		name        string
 		client      *sqs.ClientSqs
@@ -140,10 +162,11 @@ func TestClient_SetMessageVisibility(test *testing.T) {
 		message     types.Message
 		seconds     int32
 	}{
-		// TODO: Add test cases.
+		// IMPROVE: Add test cases.
 	}
 	for _, testCase := range tests {
 		test.Run(testCase.name, func(test *testing.T) {
+			test.Parallel()
 			ctx := test.Context()
 			err := testCase.client.SetMessageVisibility(ctx, testCase.message, testCase.seconds)
 			require.Equal(test, testCase.expectedErr, err)
@@ -152,15 +175,19 @@ func TestClient_SetMessageVisibility(test *testing.T) {
 }
 
 func TestClient_Close(test *testing.T) {
+	test.Parallel()
+
 	tests := []struct {
 		name        string
 		client      *sqs.ClientSqs
 		expectedErr error
 	}{
-		// TODO: Add test cases.
+		// IMPROVE: Add test cases.
 	}
 	for _, testCase := range tests {
 		test.Run(testCase.name, func(test *testing.T) {
+			test.Parallel()
+
 			expectedErr := testCase.client.Close()
 			require.Equal(test, testCase.expectedErr, expectedErr)
 		})

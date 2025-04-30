@@ -8,6 +8,8 @@ import (
 )
 
 func TestStartManagedProducer(test *testing.T) {
+	test.Parallel()
+
 	tests := []struct {
 		name            string
 		jsonOutput      bool
@@ -16,10 +18,11 @@ func TestStartManagedProducer(test *testing.T) {
 		recordchan      <-chan queues.Record
 		urlString       string
 	}{
-		// TODO: Add test cases.
+		// IMPROVE: Add test cases.
 	}
 	for _, testCase := range tests {
 		test.Run(testCase.name, func(test *testing.T) {
+			test.Parallel()
 			ctx := test.Context()
 			rabbitmq.StartManagedProducer(
 				ctx,

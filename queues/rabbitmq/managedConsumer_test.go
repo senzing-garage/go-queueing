@@ -9,6 +9,8 @@ import (
 )
 
 func TestRabbitConsumerJob_Execute(test *testing.T) {
+	test.Parallel()
+
 	tests := []struct {
 		name        string
 		expectedErr bool
@@ -18,6 +20,7 @@ func TestRabbitConsumerJob_Execute(test *testing.T) {
 	}
 	for _, testCase := range tests {
 		test.Run(testCase.name, func(test *testing.T) {
+			test.Parallel()
 			ctx := test.Context()
 			err := testCase.job.Execute(ctx)
 			require.NoError(test, err)
@@ -26,6 +29,8 @@ func TestRabbitConsumerJob_Execute(test *testing.T) {
 }
 
 func TestRabbitConsumerJob_OnError(test *testing.T) {
+	test.Parallel()
+
 	tests := []struct {
 		name string
 		err  error
@@ -35,13 +40,15 @@ func TestRabbitConsumerJob_OnError(test *testing.T) {
 	}
 	for _, testCase := range tests {
 		test.Run(testCase.name, func(test *testing.T) {
-			_ = test
+			test.Parallel()
 			testCase.job.OnError(testCase.err)
 		})
 	}
 }
 
 func TestStartManagedConsumer(test *testing.T) {
+	test.Parallel()
+
 	tests := []struct {
 		name            string
 		expectedErr     bool
@@ -56,6 +63,7 @@ func TestStartManagedConsumer(test *testing.T) {
 	}
 	for _, testCase := range tests {
 		test.Run(testCase.name, func(test *testing.T) {
+			test.Parallel()
 			ctx := test.Context()
 			err := rabbitmq.StartManagedConsumer(
 				ctx,

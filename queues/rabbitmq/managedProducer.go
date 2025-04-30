@@ -37,6 +37,7 @@ func StartManagedProducer(
 	ctx, cancel := context.WithCancel(ctx)
 
 	logger := createLogger()
+
 	err := logger.SetLogLevel(logLevel)
 	if err != nil {
 		panic(err)
@@ -49,9 +50,9 @@ func StartManagedProducer(
 	// populate an initial client pool
 	go func() { _ = createClients(ctx, numberOfWorkers, newClientFn) }()
 
-	p := pool.New().WithMaxGoroutines(numberOfWorkers)
+	workerPool := pool.New().WithMaxGoroutines(numberOfWorkers)
 	for record := range recordchan {
-		p.Go(func() {
+		workerPool.Go(func() {
 			err := processRecord(ctx, record, newClientFn)
 			if err != nil {
 				logger.Log(4006, record.GetMessageID(), err)
@@ -60,7 +61,7 @@ func StartManagedProducer(
 	}
 
 	// Wait for all the records in the record channel to be processed
-	p.Wait()
+	workerPool.Wait()
 
 	// clean up after ourselves
 	cancel()
@@ -80,9 +81,12 @@ func StartManagedProducer(
 // Private functions
 // ----------------------------------------------------------------------------
 
-// read a record from the record channel and push it to the RabbitMQ queue
-func processRecord(ctx context.Context, record queues.Record, newClientFn func() (*ClientRabbitMQ, error)) (err error) {
+// Read a record from the record channel and push it to the RabbitMQ queue.
+func processRecord(ctx context.Context, record queues.Record, newClientFn func() (*ClientRabbitMQ, error)) error {
+	var err error
+
 	client := <-clientPool
+
 	err = client.Push(ctx, record)
 	if err != nil {
 		// on error, create a new RabbitMQ client
@@ -99,19 +103,25 @@ func processRecord(ctx context.Context, record queues.Record, newClientFn func()
 		if closeErr != nil {
 			err = fmt.Errorf("error closing client %w %w", closeErr, err)
 		}
-		return
+
+		return err
 	}
 	// return the client to the pool when done
 	clientPool <- client
-	return
+
+	return err
 }
 
-// create a number of clients and put them into the client queue
+// Create a number of clients and put them into the client queue.
 func createClients(ctx context.Context, numOfClients int, newClientFn func() (*ClientRabbitMQ, error)) error {
 	_ = ctx
 	countOfClientsCreated := 0
+
 	var errorStack error
-	for i := 0; i < numOfClients; i++ {
+
+	for i := range numOfClients {
+		_ = i
+
 		client, err := newClientFn()
 		if err != nil {
 			errorStack = fmt.Errorf("error creating new client %w", err)
