@@ -1,74 +1,80 @@
-package rabbitmq
+package rabbitmq_test
 
 import (
-	"context"
 	"testing"
 
+	"github.com/senzing-garage/go-queueing/queues/rabbitmq"
 	"github.com/senzing-garage/sz-sdk-go/senzing"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRabbitConsumerJob_Execute(test *testing.T) {
-	type args struct {
-		ctx context.Context
-	}
+	test.Parallel()
+
 	tests := []struct {
-		name    string
-		j       *RabbitConsumerJob
-		args    args
-		wantErr bool
+		name        string
+		expectedErr bool
+		job         *rabbitmq.RabbitConsumerJob
 	}{
-		// TODO: Add test cases.
+		// IMPROVE: Add test cases.
 	}
-	for _, tt := range tests {
-		test.Run(tt.name, func(test *testing.T) {
-			if err := tt.j.Execute(tt.args.ctx); (err != nil) != tt.wantErr {
-				test.Errorf("RabbitConsumerJob.Execute() error = %v, wantErr %v", err, tt.wantErr)
-			}
+	for _, testCase := range tests {
+		test.Run(testCase.name, func(test *testing.T) {
+			test.Parallel()
+			ctx := test.Context()
+			err := testCase.job.Execute(ctx)
+			require.NoError(test, err)
 		})
 	}
 }
 
 func TestRabbitConsumerJob_OnError(test *testing.T) {
-	type args struct {
-		err error
-	}
+	test.Parallel()
+
 	tests := []struct {
 		name string
-		j    *RabbitConsumerJob
-		args args
+		err  error
+		job  *rabbitmq.RabbitConsumerJob
 	}{
-		// TODO: Add test cases.
+		// IMPROVE: Add test cases.
 	}
-	for _, tt := range tests {
-		test.Run(tt.name, func(test *testing.T) {
-			_ = test
-			tt.j.OnError(tt.args.err)
+	for _, testCase := range tests {
+		test.Run(testCase.name, func(test *testing.T) {
+			test.Parallel()
+			testCase.job.OnError(testCase.err)
 		})
 	}
 }
 
 func TestStartManagedConsumer(test *testing.T) {
-	type args struct {
-		ctx             context.Context
-		urlString       string
+	test.Parallel()
+
+	tests := []struct {
+		name            string
+		expectedErr     bool
+		jsonOutput      bool
+		logLevel        string
 		numberOfWorkers int
 		szEngine        *senzing.SzEngine
+		urlString       string
 		withInfo        bool
-		logLevel        string
-		jsonOutput      bool
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
 	}{
-		// TODO: Add test cases.
+		// IMPROVE: Add test cases.
 	}
-	for _, tt := range tests {
-		test.Run(tt.name, func(test *testing.T) {
-			if err := StartManagedConsumer(tt.args.ctx, tt.args.urlString, tt.args.numberOfWorkers, tt.args.szEngine, tt.args.withInfo, tt.args.logLevel, tt.args.jsonOutput); (err != nil) != tt.wantErr {
-				test.Errorf("StartManagedConsumer() error = %v, wantErr %v", err, tt.wantErr)
-			}
+	for _, testCase := range tests {
+		test.Run(testCase.name, func(test *testing.T) {
+			test.Parallel()
+			ctx := test.Context()
+			err := rabbitmq.StartManagedConsumer(
+				ctx,
+				testCase.urlString,
+				testCase.numberOfWorkers,
+				testCase.szEngine,
+				testCase.withInfo,
+				testCase.logLevel,
+				testCase.jsonOutput,
+			)
+			require.NoError(test, err)
 		})
 	}
 }

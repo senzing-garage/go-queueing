@@ -1,5 +1,7 @@
 package sqs
 
+import "errors"
+
 // ----------------------------------------------------------------------------
 // Constants
 // ----------------------------------------------------------------------------
@@ -55,3 +57,5 @@ var IDMessages = map[int]string{
 
 // Status strings for specific messages.
 var IDStatuses = map[int]string{}
+
+var errPackage = errors.New("rabbitmq")

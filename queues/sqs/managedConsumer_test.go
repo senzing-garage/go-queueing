@@ -1,78 +1,84 @@
-package sqs
+package sqs_test
 
 import (
-	"context"
 	"testing"
 
+	"github.com/senzing-garage/go-queueing/queues/sqs"
 	"github.com/senzing-garage/sz-sdk-go/senzing"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSQSJob_Execute(test *testing.T) {
-	type args struct {
-		ctx               context.Context
-		visibilitySeconds int32
-	}
+	test.Parallel()
+
 	tests := []struct {
-		name    string
-		j       *Job
-		args    args
-		wantErr bool
+		name              string
+		expectedErr       error
+		job               *sqs.ConsumerJobSqs
+		visibilitySeconds int32
 	}{
-		// TODO: Add test cases.
+		// IMPROVE: Add test cases.
 	}
-	for _, tt := range tests {
-		test.Run(tt.name, func(test *testing.T) {
-			if err := tt.j.Execute(tt.args.ctx, tt.args.visibilitySeconds); (err != nil) != tt.wantErr {
-				test.Errorf("SQSJob.Execute() error = %v, wantErr %v", err, tt.wantErr)
-			}
+	for _, testCase := range tests {
+		test.Run(testCase.name, func(test *testing.T) {
+			test.Parallel()
+			ctx := test.Context()
+			expectedErr := testCase.job.Execute(ctx, testCase.visibilitySeconds)
+			require.Equal(test, testCase.expectedErr, expectedErr)
 		})
 	}
 }
 
 func TestSQSJob_OnError(test *testing.T) {
-	ctx := context.TODO()
-	type args struct {
-		err error
-	}
+	test.Parallel()
+
 	tests := []struct {
-		name string
-		j    *Job
-		args args
+		name        string
+		expectedErr error
+		job         *sqs.ConsumerJobSqs
 	}{
-		// TODO: Add test cases.
+		// IMPROVE: Add test cases.
 	}
-	for _, tt := range tests {
-		test.Run(tt.name, func(test *testing.T) {
-			_ = test
-			tt.j.OnError(ctx, tt.args.err)
+	for _, testCase := range tests {
+		test.Run(testCase.name, func(test *testing.T) {
+			test.Parallel()
+			ctx := test.Context()
+			testCase.job.OnError(ctx, testCase.expectedErr)
 		})
 	}
 }
 
 func TestStartManagedConsumer(test *testing.T) {
-	_ = test
-	type args struct {
-		ctx               context.Context
-		urlString         string
+	test.Parallel()
+
+	tests := []struct {
+		name              string
+		expectedErr       bool
+		jsonOutput        bool
+		logLevel          string
 		numberOfWorkers   int
 		szEngine          senzing.SzEngine
-		withInfo          bool
+		urlString         string
 		visibilitySeconds int32
-		logLevel          string
-		jsonOutput        bool
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
+		withInfo          bool
 	}{
-		// TODO: Add test cases.
+		// IMPROVE: Add test cases.
 	}
-	for _, tt := range tests {
-		test.Run(tt.name, func(t *testing.T) {
-			if err := StartManagedConsumer(tt.args.ctx, tt.args.urlString, tt.args.numberOfWorkers, tt.args.szEngine, tt.args.withInfo, tt.args.visibilitySeconds, tt.args.logLevel, tt.args.jsonOutput); (err != nil) != tt.wantErr {
-				t.Errorf("StartManagedConsumer() error = %v, wantErr %v", err, tt.wantErr)
-			}
+	for _, testCase := range tests {
+		test.Run(testCase.name, func(test *testing.T) {
+			test.Parallel()
+			ctx := test.Context()
+			actualErr := sqs.StartManagedConsumer(
+				ctx,
+				testCase.urlString,
+				testCase.numberOfWorkers,
+				testCase.szEngine,
+				testCase.withInfo,
+				testCase.visibilitySeconds,
+				testCase.logLevel,
+				testCase.jsonOutput,
+			)
+			require.Equal(test, testCase.expectedErr, actualErr)
 		})
 	}
 }
