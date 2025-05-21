@@ -72,7 +72,7 @@ func NewClient(ctx context.Context, urlString string, logLevel string, jsonOutpu
 	// load the default aws config
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
-		return &client, wraperror.Errorf(err, "queues.sqs.NewClient error: %w", err)
+		return &client, wraperror.Errorf(err, "LoadDefaultConfig")
 	}
 
 	client.sqsClient = sqs.NewFromConfig(cfg)
@@ -150,7 +150,7 @@ func (client *ClientSqs) Push(ctx context.Context, record queues.Record) error {
 			client.log(3001, client.resendDelay, record.GetMessageID(), err)
 			select {
 			case <-ctx.Done():
-				return fmt.Errorf("context cancelled: %w", ctx.Err())
+				return wraperror.Errorf(ctx.Err(), "context cancelled")
 			case <-time.After(client.resendDelay):
 				// IMPROVE:  resend forever???
 				client.resendDelay = client.progressiveDelay(client.resendDelay)
@@ -219,7 +219,7 @@ func (client *ClientSqs) RemoveMessage(ctx context.Context, msg types.Message) e
 	if err != nil {
 		client.log(4015, err)
 
-		return fmt.Errorf("error deleting records, %w", err)
+		return wraperror.Errorf(err, "error deleting records")
 	}
 
 	return nil
@@ -247,7 +247,7 @@ func (client *ClientSqs) SetMessageVisibility(ctx context.Context, msg types.Mes
 	if err != nil {
 		client.log(4016, msg.MessageId, err)
 
-		return wraperror.Errorf(err, "queues.sqs.SetMessageVisibility error: %w", err)
+		return wraperror.Errorf(err, "ChangeMessageVisibility")
 	}
 
 	return nil
@@ -269,7 +269,7 @@ func (client *ClientSqs) getLogger() logging.Logging {
 func (client *ClientSqs) getQueueURL(ctx context.Context, urlString string) error {
 	u, err := url.Parse(urlString)
 	if err != nil {
-		return fmt.Errorf("unable to parse SQS URL string %w", err)
+		return wraperror.Errorf(err, "unable to parse SQS URL string")
 	}
 
 	queryMap, _ := url.ParseQuery(u.RawQuery)
@@ -284,7 +284,7 @@ func (client *ClientSqs) getQueueURL(ctx context.Context, urlString string) erro
 
 		sqsURL, err := client.sqsClient.GetQueueUrl(ctx, input)
 		if err != nil {
-			return fmt.Errorf("unable to retrieve SQS URL from: %s, error: %w", urlString, err)
+			return wraperror.Errorf(err, "unable to retrieve SQS URL from: %s", urlString)
 		}
 
 		client.sqsURL = sqsURL
@@ -375,7 +375,7 @@ func (client *ClientSqs) receiveMessage(
 	if err != nil {
 		client.log(4013, err)
 
-		return nil, fmt.Errorf("error receiving records %w", err)
+		return nil, wraperror.Errorf(err, "error receiving records")
 	}
 
 	if len(msg.Messages) == 0 {
@@ -413,12 +413,12 @@ func (client *ClientSqs) sendDeadRecord(ctx context.Context, record types.Messag
 	if err != nil {
 		client.log(4008, err)
 
-		return wraperror.Errorf(err, "queues.sqs.sendDeadRecord.SendMessage error: %w", err)
+		return wraperror.Errorf(err, "queues.sqs.sendDeadRecord.SendMessage")
 	}
 
 	client.log(2006, *resp.MessageId)
 
-	return wraperror.Errorf(err, "queues.sqs.sendDeadRecord error: %w", err)
+	return wraperror.Errorf(err, "queues.sqs.sendDeadRecord")
 }
 
 // Send a message to a queue.
@@ -442,7 +442,7 @@ func (client *ClientSqs) sendRecord(ctx context.Context, record queues.Record) e
 	if err != nil {
 		client.log(4009, err)
 
-		return wraperror.Errorf(err, "queues.sqs.sendRecord.SendMessage error: %w", err)
+		return wraperror.Errorf(err, "queues.sqs.sendRecord.SendMessage")
 	}
 
 	client.log(2006, *resp.MessageId)
@@ -506,7 +506,7 @@ func (client *ClientSqs) sendRecordBatch(ctx context.Context, records []queues.R
 		client.log(2007, len(resp.Successful))
 	}
 
-	return wraperror.Errorf(err, "queues.sqs.sendRecordBatch error: %w", err)
+	return wraperror.Errorf(err, wraperror.NoMessage)
 }
 
 // ----------------------------------------------------------------------------

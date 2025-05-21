@@ -2,7 +2,6 @@ package rabbitmq
 
 import (
 	"context"
-	"fmt"
 	"runtime"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -43,26 +42,25 @@ func (job *RabbitConsumerJob) Execute(ctx context.Context) error {
 			flags = senzing.SzWithInfo
 		}
 
-		result, err := (*job.engine).AddRecord(ctx, record.DataSource, record.ID, record.JSON, flags)
+		_, err := (*job.engine).AddRecord(ctx, record.DataSource, record.ID, record.JSON, flags)
 		if err != nil {
-			return fmt.Errorf(
-				"add record error, record id: %s, message id: %s, result: %s, %w",
+			return wraperror.Errorf(
+				err,
+				"add record error, record id: %s, message id: %s",
 				job.delivery.MessageId,
 				record.ID,
-				result,
-				err,
 			)
 		}
 
 		// when we successfully process a delivery, acknowledge it.
 		err = job.delivery.Ack(false)
 
-		return wraperror.Errorf(err, "queues.rabbitmq.Execute.Ack error: %w", err)
+		return wraperror.Errorf(err, "Ack")
 	}
 	// when we get an invalid delivery, negatively acknowledge and send to the dead letter queue
 	err := job.delivery.Nack(false, false)
 
-	return fmt.Errorf("invalid deliver from RabbitMQ, message id: %s, %w", job.delivery.MessageId, err)
+	return wraperror.Errorf(err, "invalid deliver from RabbitMQ, message id: %s", job.delivery.MessageId)
 }
 
 // Whenever Execute() returns an error or panics, this is called.
@@ -126,13 +124,13 @@ func StartManagedConsumer(
 
 	client, err := NewClient(urlString)
 	if err != nil {
-		return fmt.Errorf("unable to get a new RabbitMQ client %w", err)
+		return wraperror.Errorf(err, "unable to get a new RabbitMQ client")
 	}
 	defer client.Close()
 
 	deliveries, err := client.Consume(numberOfWorkers)
 	if err != nil {
-		return fmt.Errorf("unable to get a new RabbitMQ delivery channel %w", err)
+		return wraperror.Errorf(err, "unable to get a new RabbitMQ delivery channel")
 	}
 
 	workerPool := pool.New().WithMaxGoroutines(numberOfWorkers)

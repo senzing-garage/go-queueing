@@ -3,7 +3,6 @@ package rabbitmq
 import (
 	"context"
 	"crypto/rand"
-	"fmt"
 	"math/big"
 	"net/url"
 	"time"
@@ -54,12 +53,12 @@ const (
 func NewClient(urlString string) (*ClientRabbitMQ, error) {
 	u, err := url.Parse(urlString)
 	if err != nil {
-		return nil, wraperror.Errorf(err, "unable to parse RabbitMQ URL string error: %w", err)
+		return nil, wraperror.Errorf(err, "unable to parse RabbitMQ URL string")
 	}
 
 	queryMap, _ := url.ParseQuery(u.RawQuery)
 	if len(queryMap["exchange"]) < 1 || len(queryMap["queue-name"]) < 1 {
-		return nil, wraperror.Errorf(errPackage, "please define an exchange and queue-name as query parameters")
+		return nil, wraperror.Errorf(errForPackage, "please define an exchange and queue-name as query parameters")
 	}
 
 	routingKey := queryMap["queue-name"][0]
@@ -94,7 +93,7 @@ func NewClient(urlString string) (*ClientRabbitMQ, error) {
 // Close will cleanly shutdown the channel and connection.
 func (client *ClientRabbitMQ) Close() error {
 	if !client.isReady {
-		return wraperror.Errorf(errPackage, "already closed: not connected to the server")
+		return wraperror.Errorf(errForPackage, "already closed: not connected to the server")
 	}
 
 	close(client.done)
@@ -138,7 +137,7 @@ func (client *ClientRabbitMQ) Consume(prefetch int) (<-chan amqp.Delivery, error
 		0,        // prefetch size
 		false,    // global
 	); err != nil {
-		return nil, fmt.Errorf("unable to set the RabbitMQ channel quality of service %w", err)
+		return nil, wraperror.Errorf(err, "unable to set the RabbitMQ channel quality of service")
 	}
 
 	channel, err := client.channel.Consume(
@@ -151,7 +150,7 @@ func (client *ClientRabbitMQ) Consume(prefetch int) (<-chan amqp.Delivery, error
 		nil,              // args
 	)
 
-	return channel, wraperror.Errorf(err, "queues.rabbitmq.UnsafePush error: %w", err)
+	return channel, wraperror.Errorf(err, wraperror.NoMessage)
 }
 
 // Init initializes a single RabbitMQ client that will automatically
@@ -200,7 +199,7 @@ func (client *ClientRabbitMQ) Push(ctx context.Context, record queues.Record) er
 			client.log(3001, client.resendDelay, record.GetMessageID(), err)
 			select {
 			case <-client.done:
-				return wraperror.Errorf(errPackage, "client is shutting down")
+				return wraperror.Errorf(errForPackage, "client is shutting down")
 			case <-time.After(client.resendDelay):
 				client.resendDelay = client.progressiveDelay(client.resendDelay)
 			}
@@ -249,7 +248,7 @@ func (client *ClientRabbitMQ) UnsafePush(ctx context.Context, record queues.Reco
 		},
 	)
 
-	return wraperror.Errorf(err, "queues.rabbitmq.UnsafePush error: %w", err)
+	return wraperror.Errorf(err, wraperror.NoMessage)
 }
 
 // ----------------------------------------------------------------------------
@@ -278,7 +277,7 @@ func (client *ClientRabbitMQ) changeConnection(connection *amqp.Connection) {
 func (client *ClientRabbitMQ) connect(addr string) (*amqp.Connection, error) {
 	conn, err := amqp.Dial(addr)
 	if err != nil {
-		return nil, fmt.Errorf("unable to dial RabbitMQ address: %v, error: %w", addr, err)
+		return nil, wraperror.Errorf(err, "unable to dial RabbitMQ address: %v", addr)
 	}
 
 	client.changeConnection(conn)
@@ -370,12 +369,12 @@ func (client *ClientRabbitMQ) init(conn *amqp.Connection) error {
 
 	channel, err := conn.Channel()
 	if err != nil {
-		return fmt.Errorf("unable to initialize the RabbitMQ channel %w", err)
+		return wraperror.Errorf(err, "unable to initialize the RabbitMQ channel")
 	}
 
 	err = channel.Confirm(false)
 	if err != nil {
-		return wraperror.Errorf(err, "queues.rabbitmq.init error: %w", err)
+		return wraperror.Errorf(err, "Confirm")
 	}
 
 	err = channel.ExchangeDeclare(
@@ -388,7 +387,7 @@ func (client *ClientRabbitMQ) init(conn *amqp.Connection) error {
 		nil,                 // arguments
 	)
 	if err != nil {
-		return fmt.Errorf("unable to declare the RabbitMQ exchange %w", err)
+		return wraperror.Errorf(err, "unable to declare the RabbitMQ exchange")
 	}
 
 	var queue amqp.Queue
@@ -402,7 +401,7 @@ func (client *ClientRabbitMQ) init(conn *amqp.Connection) error {
 		nil,              // arguments
 	)
 	if err != nil {
-		return fmt.Errorf("unable to initialize the RabbitMQ queue %w", err)
+		return wraperror.Errorf(err, "unable to initialize the RabbitMQ queue")
 	}
 
 	err = channel.QueueBind(
@@ -413,7 +412,7 @@ func (client *ClientRabbitMQ) init(conn *amqp.Connection) error {
 		nil,
 	)
 	if err != nil {
-		return fmt.Errorf("unable to bind the RabbitMQ queue %w", err)
+		return wraperror.Errorf(err, "unable to bind the RabbitMQ queue")
 	}
 
 	client.changeChannel(channel)
