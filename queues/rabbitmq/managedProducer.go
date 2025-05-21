@@ -2,9 +2,9 @@ package rabbitmq
 
 import (
 	"context"
-	"fmt"
 	"runtime"
 
+	"github.com/senzing-garage/go-helpers/wraperror"
 	"github.com/senzing-garage/go-queueing/queues"
 	"github.com/sourcegraph/conc/pool"
 )
@@ -90,18 +90,18 @@ func processRecord(ctx context.Context, record queues.Record, newClientFn func()
 	err = client.Push(ctx, record)
 	if err != nil {
 		// on error, create a new RabbitMQ client
-		err = fmt.Errorf("error pushing record, creating new client %w", err)
+		err = wraperror.Errorf(err, "error pushing record, creating new client")
 		// put a new client in the pool, dropping the current one
-		newClient, newClientErr := newClientFn()
-		if newClientErr != nil {
-			err = fmt.Errorf("error creating new client %w %w", newClientErr, err)
+		newClient, errNewClientFn := newClientFn()
+		if errNewClientFn != nil {
+			err = wraperror.Errorf(err, "error creating new client: %s", errNewClientFn.Error())
 		} else {
 			clientPool <- newClient
 		}
 		// make sure to close the old client
-		closeErr := client.Close()
-		if closeErr != nil {
-			err = fmt.Errorf("error closing client %w %w", closeErr, err)
+		errClose := client.Close()
+		if errClose != nil {
+			err = wraperror.Errorf(err, "error closing client: %s", errClose.Error())
 		}
 
 		return err
@@ -124,7 +124,7 @@ func createClients(ctx context.Context, numOfClients int, newClientFn func() (*C
 
 		client, err := newClientFn()
 		if err != nil {
-			errorStack = fmt.Errorf("error creating new client %w", err)
+			errorStack = wraperror.Errorf(err, "error creating new client")
 		} else {
 			countOfClientsCreated++
 			clientPool <- client

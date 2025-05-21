@@ -2,7 +2,6 @@ package sqs
 
 import (
 	"context"
-	"fmt"
 	"runtime"
 	"time"
 
@@ -48,11 +47,11 @@ func (job *ConsumerJobSqs) Execute(ctx context.Context, visibilitySeconds int32)
 		// When we get an invalid delivery, send to the dead letter queue.
 		err := job.client.PushDeadRecord(ctx, job.message)
 		if err != nil {
-			return fmt.Errorf(
-				"unable to push message to the dead letter queue, record id: %s, message id: %s, %w",
+			return wraperror.Errorf(
+				err,
+				"unable to push message to the dead letter queue, record id: %s, message id: %s",
 				*job.message.MessageId,
 				record.ID,
-				err,
 			)
 		}
 	}
@@ -65,7 +64,7 @@ func (job *ConsumerJobSqs) Execute(ctx context.Context, visibilitySeconds int32)
 // Whenever Execute() returns an error or panics, this is called.
 func (job *ConsumerJobSqs) OnError(ctx context.Context, err error) {
 	_ = err
-	// fmt.Println("ERROR: Worker error:", err)
+	// fmt.Println("ERROR: Worker", err)
 	// fmt.Println("ERROR: Failed to add record. msg id:", *j.message.MessageId)
 	_ = job.client.PushDeadRecord(ctx, job.message)
 	// if err != nil {
@@ -113,7 +112,7 @@ func StartManagedConsumer(
 
 	client, err := NewClient(ctx, urlString, logLevel, jsonOutput)
 	if err != nil {
-		return fmt.Errorf("unable to get a new SQS client, %w", err)
+		return wraperror.Errorf(err, "unable to get a new SQS client")
 	}
 
 	defer client.Close()
@@ -135,7 +134,7 @@ func StartManagedConsumer(
 	if err != nil {
 		logger.Log(4019, err)
 
-		return fmt.Errorf("unable to get a new SQS message channel %w", err)
+		return wraperror.Errorf(err, "unable to get a new SQS message channel")
 	}
 
 	workerPool := pool.New().WithMaxGoroutines(numberOfWorkers)
@@ -217,12 +216,12 @@ func (job *ConsumerJobSqs) bob(ctx context.Context, record *record.Record, visib
 	visibilityCancel()
 
 	if err != nil {
-		return fmt.Errorf(
-			"add record error, record id: %s, message id: %s, result: %s, %w",
+		return wraperror.Errorf(
+			err,
+			"add record error, record id: %s, message id: %s, result: %s",
 			*job.message.MessageId,
 			record.ID,
 			result,
-			err,
 		)
 	}
 	// IMPROVE:  what do we do with the "withInfo" data here?
@@ -231,11 +230,11 @@ func (job *ConsumerJobSqs) bob(ctx context.Context, record *record.Record, visib
 	// as long as there was no error delete the message from the queue
 	err = job.client.RemoveMessage(ctx, job.message)
 	if err != nil {
-		return fmt.Errorf(
-			"record not removed from queue, record id: %s, message id: %s, %w",
+		return wraperror.Errorf(
+			err,
+			"record not removed from queue, record id: %s, message id: %s",
 			*job.message.MessageId,
 			record.ID,
-			err,
 		)
 	}
 

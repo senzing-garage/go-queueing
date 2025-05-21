@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"runtime"
 
+	"github.com/senzing-garage/go-helpers/wraperror"
 	"github.com/senzing-garage/go-queueing/queues"
 	"github.com/sourcegraph/conc/pool"
 )
@@ -91,7 +92,7 @@ func createClients(ctx context.Context, numOfClients int, newClientFn func() (*C
 
 		client, err := newClientFn()
 		if err != nil {
-			errorStack = fmt.Errorf("error creating a new client %w", err)
+			errorStack = wraperror.Errorf(err, "error creating a new client")
 		} else {
 			countOfClientsCreated++
 			clientPool <- client
@@ -110,16 +111,16 @@ func createClients(ctx context.Context, numOfClients int, newClientFn func() (*C
 // 	err = client.Push(ctx, record)
 // 	if err != nil {
 // 		// on error, create a new SQS client
-// 		err = fmt.Errorf("error pushing record batch %w", err)
+// 		err = wraperror.Errorf(err, "error pushing record batch")
 // 		//put a new client in the pool, dropping the current one
 // 		newClient, newClientErr := newClientFn()
 // 		if newClientErr != nil {
-// 			err = fmt.Errorf("error creating a new client %w", newClientErr)
+// 			err = wraperror.Errorf(err, "error creating a new client %w", newClientErr)
 // 		} else {
 // 			clientPool <- newClient
 // 		}
 // 		// make sure to close the old client
-// 		return fmt.Errorf("error creating a new client %w %w", client.Close(), err)
+// 		return wraperror.Errorf(err, "error creating a new client %w", client.Close())
 // 	}
 // 	// return the client to the pool when done
 // 	clientPool <- client
@@ -141,16 +142,16 @@ func processRecordBatch(
 	err = client.PushBatch(ctx, recordchan)
 	if err != nil {
 		// on error, create a new SQS client
-		err = fmt.Errorf("error pushing record batch %w", err)
+		err = wraperror.Errorf(err, "error pushing record batch")
 		// put a new client in the pool, dropping the current one
 		newClient, newClientErr := newClientFn()
 		if newClientErr != nil {
-			err = fmt.Errorf("error creating a new client %w", newClientErr)
+			err = wraperror.Errorf(err, "error creating a new client %s", newClientErr.Error())
 		} else {
 			clientPool <- newClient
 		}
 		// make sure to close the old client
-		return fmt.Errorf("error creating a new client %w %w", client.Close(), err)
+		return wraperror.Errorf(err, "error creating a new client %s", client.Close().Error())
 	}
 	// return the client to the pool when done
 	clientPool <- client
