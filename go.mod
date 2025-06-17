@@ -1,6 +1,6 @@
 module github.com/senzing-garage/go-queueing
 
-go 1.24
+go 1.24.4
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.36.4
@@ -10,7 +10,7 @@ require (
 	github.com/roncewind/go-util v0.0.5
 	github.com/senzing-garage/go-helpers v0.6.13
 	github.com/senzing-garage/go-logging v1.5.3
-	github.com/senzing-garage/sz-sdk-go v0.15.5
+	github.com/senzing-garage/sz-sdk-go v0.15.6
 	github.com/sourcegraph/conc v0.3.0
 	github.com/stretchr/testify v1.10.0
 )
