@@ -197,6 +197,7 @@ func (client *ClientRabbitMQ) Push(ctx context.Context, record queues.Record) er
 		err := client.UnsafePush(ctx, record)
 		if err != nil {
 			client.log(3001, client.resendDelay, record.GetMessageID(), err)
+
 			select {
 			case <-client.done:
 				return wraperror.Errorf(errForPackage, "client is shutting down")
@@ -206,6 +207,7 @@ func (client *ClientRabbitMQ) Push(ctx context.Context, record queues.Record) er
 
 			continue
 		}
+
 		select {
 		case confirm := <-client.notifyConfirm:
 			if confirm.Ack {
@@ -217,6 +219,7 @@ func (client *ClientRabbitMQ) Push(ctx context.Context, record queues.Record) er
 		case <-time.After(client.resendDelay):
 			client.resendDelay = client.progressiveDelay(client.resendDelay)
 		}
+
 		client.log(3002, client.resendDelay, record.GetMessageID())
 	}
 }
@@ -416,8 +419,10 @@ func (client *ClientRabbitMQ) init(conn *amqp.Connection) error {
 	}
 
 	client.changeChannel(channel)
+
 	client.isReady = true
 	client.notifyReady <- struct{}{}
+
 	client.log(2005)
 
 	return nil

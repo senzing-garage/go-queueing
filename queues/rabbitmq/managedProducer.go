@@ -127,6 +127,7 @@ func createClients(ctx context.Context, numOfClients int, newClientFn func() (*C
 			errorStack = wraperror.Errorf(err, "error creating new client")
 		} else {
 			countOfClientsCreated++
+
 			clientPool <- client
 		}
 	}

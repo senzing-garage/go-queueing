@@ -41,7 +41,6 @@ func (job *ConsumerJobSqs) Execute(ctx context.Context, visibilitySeconds int32)
 	}()
 
 	record, newRecordErr := record.NewRecord(*job.message.Body)
-
 	if newRecordErr != nil {
 		// fmt.Println(time.Now(), "ERROR: Invalid delivery from SQS. msg id:", *j.message.MessageId)
 		// When we get an invalid delivery, send to the dead letter queue.
@@ -116,6 +115,7 @@ func StartManagedConsumer(
 	}
 
 	defer client.Close()
+
 	logger.Log(2012, numberOfWorkers)
 
 	// setup jobs that will be used to process SQS deliveries
