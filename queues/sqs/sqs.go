@@ -113,7 +113,6 @@ func (client *ClientSqs) Consume(ctx context.Context, visibilitySeconds int32) (
 
 		for {
 			output, err := client.receiveMessage(ctx, visibilitySeconds)
-
 			if err != nil {
 				time.Sleep(client.reconnectDelay)
 				client.reconnectDelay = client.progressiveDelay(client.reconnectDelay)
@@ -148,6 +147,7 @@ func (client *ClientSqs) Push(ctx context.Context, record queues.Record) error {
 		err := client.sendRecord(ctx, record)
 		if err != nil {
 			client.log(3001, client.resendDelay, record.GetMessageID(), err)
+
 			select {
 			case <-ctx.Done():
 				return wraperror.Errorf(ctx.Err(), "context cancelled")

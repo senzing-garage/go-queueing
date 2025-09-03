@@ -105,7 +105,7 @@ linters:
     - wastedassign
     - whitespace
     - wrapcheck
-    - wsl
+    - wsl_v5
     - zerologlint
   disable:
     - gochecknoglobals
@@ -147,7 +147,7 @@ linters:
         - '.+/types\.MessageAttributeValue$'
         - '.+/types\.SendMessageBatchRequestEntry$'
     funlen:
-      lines: 85
+      lines: 90
     ireturn:
       allow:
         - error
