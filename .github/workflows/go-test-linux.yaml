@@ -6,14 +6,15 @@ on:
     - cron: "15 7 * * *"
   workflow_dispatch:
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   go-test-linux:
     name: "Go test with OS: ${{ matrix.os }}; Go: ${{ matrix.go }}"
     outputs:
       status: ${{ job.status }}
+    permissions:
+      contents: read
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -23,6 +24,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
 
       - name: Setup go ${{ matrix.go }}
         uses: actions/setup-go@v6
