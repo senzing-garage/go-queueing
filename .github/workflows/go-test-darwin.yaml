@@ -7,14 +7,15 @@ on:
     - cron: "15 7 * * *"
   workflow_dispatch:
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   go-test-darwin:
     name: "Go test with OS: ${{ matrix.os }}; Go: ${{ matrix.go }}"
     outputs:
       status: ${{ job.status }}
+    permissions:
+      contents: read
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -24,6 +25,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
 
       - name: Setup go ${{ matrix.go }}
         uses: actions/setup-go@v6
@@ -56,7 +59,9 @@ jobs:
   coverage:
     name: Coverage
     needs: go-test-darwin
-    uses: senzing-factory/build-resources/.github/workflows/go-coverage.yaml@v2
+    permissions:
+      contents: read
+    uses: senzing-factory/build-resources/.github/workflows/go-coverage.yaml@v3
     with:
       coverage-config: ./.github/coverage/testcoverage.yaml
 
@@ -65,6 +70,6 @@ jobs:
     if: ${{ always() && contains(fromJSON('["failure", "cancelled"]'), needs.go-test-darwin.outputs.status ) && github.event_name == 'schedule' }}
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-    uses: senzing-factory/build-resources/.github/workflows/build-failure-slack-notification.yaml@v2
+    uses: senzing-factory/build-resources/.github/workflows/build-failure-slack-notification.yaml@v3
     with:
       job-status: ${{ needs.go-test-darwin.outputs.status }}
