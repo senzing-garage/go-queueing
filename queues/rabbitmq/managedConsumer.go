@@ -66,6 +66,7 @@ func (job *RabbitConsumerJob) Execute(ctx context.Context) error {
 // Whenever Execute() returns an error or panics, this is called.
 func (job *RabbitConsumerJob) OnError(err error) {
 	_ = err
+
 	if job.delivery.Redelivered {
 		// swallow any error, it'll timeout and be redelivered
 		_ = job.delivery.Nack(false, false)
