@@ -8,8 +8,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.20
 	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/roncewind/go-util v0.0.5
-	github.com/senzing-garage/go-helpers v0.6.13
-	github.com/senzing-garage/go-logging v1.5.3
+	github.com/senzing-garage/go-helpers v0.6.14
+	github.com/senzing-garage/go-logging v1.5.4
 	github.com/senzing-garage/sz-sdk-go v0.15.11
 	github.com/sourcegraph/conc v0.3.0
 	github.com/stretchr/testify v1.11.1
@@ -32,6 +32,6 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/senzing-garage/go-messaging v1.5.3 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/exp v0.0.0-20251125195548-87e1e737ad39 // indirect
+	golang.org/x/exp v0.0.0-20251219203646-944ab1f22d93 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
