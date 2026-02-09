@@ -10,7 +10,7 @@ require (
 	github.com/roncewind/go-util v0.0.5
 	github.com/senzing-garage/go-helpers v0.6.15
 	github.com/senzing-garage/go-logging v1.5.4
-	github.com/senzing-garage/sz-sdk-go v0.15.11
+	github.com/senzing-garage/sz-sdk-go v0.15.12
 	github.com/sourcegraph/conc v0.3.0
 	github.com/stretchr/testify v1.11.1
 )
