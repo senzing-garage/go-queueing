@@ -50,8 +50,8 @@ github.com/senzing-garage/go-logging v1.5.4 h1:xTlvbvnX2j5KAKfMhwXw278smKKuFnRLm
 github.com/senzing-garage/go-logging v1.5.4/go.mod h1:4J8IpcncQtNo4+0PYaB853xvbyvt+0zBh1sAt6E5MSA=
 github.com/senzing-garage/go-messaging v1.5.3 h1:bH+LtEgNJj/PRbg1VMK9/Gk457CdfdcjMiubxffbTog=
 github.com/senzing-garage/go-messaging v1.5.3/go.mod h1:7qvSNAVyWcSIcsnDAm8obCxHItljN295O3fX4bOgfp0=
-github.com/senzing-garage/sz-sdk-go v0.15.11 h1:uVw3JldDZTCwT9F8JMmmzCXcaijQGxvhAsILaCYllt4=
-github.com/senzing-garage/sz-sdk-go v0.15.11/go.mod h1:OO/kisqP2NBG/3eRG0M1q9diOZDfFEHf+g+exCv6yv0=
+github.com/senzing-garage/sz-sdk-go v0.15.12 h1:r2kz74GqfVJIzPDUF2xjM3pccqeA1TahZCz37QUCd5U=
+github.com/senzing-garage/sz-sdk-go v0.15.12/go.mod h1:OO/kisqP2NBG/3eRG0M1q9diOZDfFEHf+g+exCv6yv0=
 github.com/sourcegraph/conc v0.3.0 h1:OQTbbt6P72L20UqAkXXuLOj79LfEanQ+YQFNpLA9ySo=
 github.com/sourcegraph/conc v0.3.0/go.mod h1:Sdozi7LEKbFPqYX2/J+iBAM6HpqSLTASQIKqDmF7Mt0=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
