@@ -12,7 +12,7 @@ require (
 	github.com/senzing-garage/go-logging v1.5.4
 	github.com/senzing-garage/sz-sdk-go v0.15.14
 	github.com/sourcegraph/conc v0.3.0
-	github.com/stretchr/testify v1.12.0
+	github.com/stretchr/testify v1.12.1
 )
 
 require (
@@ -30,6 +30,6 @@ require (
 	github.com/aws/smithy-go v1.27.8 // indirect
 	github.com/senzing-garage/go-messaging v1.5.3 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/exp v0.0.0-20260611194520-c48552f49976 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
