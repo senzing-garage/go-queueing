@@ -38,6 +38,11 @@ hello-world-osarch-specific:
 	$(info Hello World, from windows.)
 
 
+.PHONY: package-osarch-specific
+package-osarch-specific:
+	$(info No packaging for windows)
+
+
 .PHONY: run-osarch-specific
 run-osarch-specific:
 	@go run main.go
@@ -51,6 +56,11 @@ setup-osarch-specific:
 .PHONY: test-osarch-specific
 test-osarch-specific:
 	@go test -json -v -p 1 ./... 2>&1 | tee /tmp/gotest.log | gotestfmt
+
+
+.PHONY: test-verbose-osarch-specific
+test-verbose-osarch-specific:
+	@go test -v -p 1 ./...
 
 # -----------------------------------------------------------------------------
 # Makefile targets supported only by this platform.
