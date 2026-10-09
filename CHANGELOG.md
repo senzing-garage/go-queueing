@@ -9,6 +9,21 @@ This project adheres to [Semantic Versioning].
 
 -
 
+## [0.5.0] - 2026-10-09
+
+### Changed in 0.5.0
+
+- Update to Go 1.27.1
+- Sync repository setup files with [template-go] `v0.5.0`
+- Pin GitHub Actions to commit SHAs and golangci-lint to v2.14.0
+- Update dependencies
+  - github.com/aws/aws-sdk-go-v2 v1.47.2
+  - github.com/aws/aws-sdk-go-v2/config v1.33.8
+  - github.com/aws/aws-sdk-go-v2/service/sqs v1.52.3
+  - github.com/senzing-garage/go-helpers v0.7.0
+  - github.com/senzing-garage/go-logging v1.6.0
+  - github.com/senzing-garage/sz-sdk-go v0.16.0
+
 ## [0.4.8] - 2026-01-07
 
 ### Changed in 0.4.8
@@ -158,3 +173,4 @@ This project adheres to [Semantic Versioning].
 [CommonMark]: https://commonmark.org/
 [Keep a Changelog]: https://keepachangelog.com/
 [Semantic Versioning]: https://semver.org/
+[template-go]: https://github.com/senzing-garage/template-go/tree/v0.5.0
