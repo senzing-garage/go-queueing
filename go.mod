@@ -5,7 +5,7 @@ go 1.27.1
 require (
 	github.com/aws/aws-sdk-go-v2 v1.47.4
 	github.com/aws/aws-sdk-go-v2/config v1.33.10
-	github.com/aws/aws-sdk-go-v2/service/sqs v1.52.5
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.52.6
 	github.com/rabbitmq/amqp091-go v1.16.0
 	github.com/roncewind/go-util v0.0.5
 	github.com/senzing-garage/go-helpers v0.7.0
